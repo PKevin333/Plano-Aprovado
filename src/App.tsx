@@ -56,6 +56,7 @@ import { api } from './services/api';
 import { Subject, Session, Exercise, Review, Goal, DashboardStats, Objective, Topic } from './types';
 import { AutoSaveIndicator, useAutoSave, useDraft } from './components/AutoSave';
 import { ColorPicker, SubjectAutocomplete } from './components/SubjectPicker';
+import WelcomeScreen from './components/WelcomeScreen';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -2347,6 +2348,8 @@ export default function App() {
   const [pendingReviewsCount, setPendingReviewsCount] = useState(0);
   const [todayMinutes, setTodayMinutes] = useState(0);
   const [dailyGoalMet, setDailyGoalMet] = useState(false);
+  const [userId, setUserId] = useState<string | null>(() => localStorage.getItem('planoaprovado_user_id'));
+  const [userName, setUserName] = useState<string>(() => localStorage.getItem('planoaprovado_user_name') || 'Estudante');
 
   const refreshBadges = useCallback(async () => {
     const [reviews, stats] = await Promise.all([
@@ -2375,6 +2378,17 @@ export default function App() {
     setConfigState(c);
     applyTheme(c);
   };
+
+  if (!userId) {
+    return (
+      <WelcomeScreen
+        onConfirm={(name, id) => {
+          setUserName(name);
+          setUserId(id);
+        }}
+      />
+    );
+  }
 
   const renderContent = () => {
     switch (activeTab) {
