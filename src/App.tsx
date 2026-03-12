@@ -77,7 +77,7 @@ interface AppConfig {
 const defaultConfig: AppConfig = {
   theme: 'light',
   accentColor: '#2563eb',
-  userName: 'Estudante',
+  userName: '',
   dailyGoalHours: 4,
 };
 
@@ -107,7 +107,6 @@ const useTheme = () => {
     inputBg: dark ? '#0f172a' : '#ffffff',
     hoverBg: dark ? '#334155' : '#f1f5f9',
     cardClass: dark ? '' : '',
-    // helper to build style objects
     card: { background: dark ? '#1e293b' : '#ffffff', borderColor: dark ? '#334155' : '#e2e8f0', color: dark ? '#f1f5f9' : '#0f172a' },
     cardInner: { background: dark ? '#0f172a' : '#f8fafc' },
     input: { background: dark ? '#0f172a' : '#ffffff', borderColor: dark ? '#334155' : '#e2e8f0', color: dark ? '#f1f5f9' : '#0f172a' },
@@ -233,11 +232,13 @@ const StatCard = ({ label, value, icon: Icon, color, trend }: { label: string, v
 const Dashboard = () => {
   const { config, navigateTo } = useAppConfig();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.stats.summary().then(data => {
+    Promise.all([api.stats.summary(), api.sessions.list()]).then(([data, sessionList]) => {
       setStats(data);
+      setSessions(sessionList);
       setLoading(false);
     });
   }, []);
@@ -252,11 +253,26 @@ const Dashboard = () => {
 
   const progress = stats.daily_goal > 0 ? (stats.today_duration / (stats.daily_goal * 60)) * 100 : 0;
 
+  // ✅ FIX: Consistência calculada de verdade — % de dias com estudo no mês atual
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysSoFar = now.getDate(); // só conta até hoje, não o mês todo
+  const studiedDaysThisMonth = new Set(
+    sessions
+      .filter(s => {
+        const d = new Date(s.date);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      })
+      .map(s => s.date.substring(0, 10))
+  ).size;
+  const consistencyPct = daysSoFar > 0 ? Math.round((studiedDaysThisMonth / daysSoFar) * 100) : 0;
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Olá, {config.userName}! 👋</h1>
+          {/* ✅ FIX: usa config.userName que agora é sincronizado corretamente do WelcomeScreen */}
+          <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Olá, {config.userName || 'Estudante'}! 👋</h1>
           <p style={{color: 'inherit', opacity: 0.6}}>Aqui está o resumo do seu progresso hoje.</p>
         </div>
         <div className="flex gap-3">
@@ -271,7 +287,8 @@ const Dashboard = () => {
         <StatCard label="Horas Hoje" value={formatDuration(stats.today_duration)} icon={Clock} color="bg-emerald-500" trend="+12% que ontem" />
         <StatCard label="Meta Diária" value={`${stats.daily_goal}h`} icon={Target} color="bg-indigo-500" />
         <StatCard label="Revisões Pendentes" value={stats.pending_reviews_count} icon={RefreshCcw} color="bg-orange-500" />
-        <StatCard label="Consistência" value="85%" icon={TrendingUp} color="bg-rose-500" />
+        {/* ✅ FIX: Consistência real, calculada dos dias estudados no mês */}
+        <StatCard label="Consistência" value={`${consistencyPct}%`} icon={TrendingUp} color="bg-rose-500" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -497,7 +514,6 @@ const Subjects = () => {
         )}
       </AnimatePresence>
 
-      {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {deleteModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -997,8 +1013,6 @@ const Reviews = () => {
 
   return (
     <div className="space-y-8">
-
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Revisões Programadas</h1>
@@ -1014,7 +1028,6 @@ const Reviews = () => {
         </button>
       </div>
 
-      {/* Settings Panel */}
       <AnimatePresence>
         {showSettings && (
           <motion.div
@@ -1030,8 +1043,6 @@ const Reviews = () => {
               </div>
             </div>
             <div className="p-6 space-y-6">
-
-              {/* Toggle global */}
               <div className="flex items-center justify-between p-4 rounded-2xl border" style={{background:'var(--surface2,#f8fafc)',borderColor:'var(--border2,#f1f5f9)'}}>
                 <div className="flex items-center gap-4">
                   <div className={cn("p-3 rounded-xl", globalEnabled ? "bg-emerald-100" : "bg-slate-200")}>
@@ -1054,7 +1065,6 @@ const Reviews = () => {
                 </button>
               </div>
 
-              {/* Per-subject toggles */}
               {globalEnabled && (
                 <div className="space-y-3">
                   <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Revisões por Disciplina</p>
@@ -1094,7 +1104,6 @@ const Reviews = () => {
         )}
       </AnimatePresence>
 
-      {/* Reviews Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card title="Próximas Revisões" subtitle="Fique em dia com seu cronograma">
           <div className="space-y-4">
@@ -1108,20 +1117,8 @@ const Reviews = () => {
                   <p className="text-xs opacity-60">Programada para {format(new Date(review.scheduled_date), "dd/MM/yyyy")}</p>
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                  <button
-                    onClick={() => handleSkip(review.id)}
-                    title="Ignorar"
-                    className="p-2 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all"
-                  >
-                    <X size={18} />
-                  </button>
-                  <button
-                    onClick={() => handleComplete(review.id)}
-                    title="Concluída"
-                    className="p-2 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 transition-all"
-                  >
-                    <CheckCircle2 size={20} />
-                  </button>
+                  <button onClick={() => handleSkip(review.id)} title="Ignorar" className="p-2 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all"><X size={18} /></button>
+                  <button onClick={() => handleComplete(review.id)} title="Concluída" className="p-2 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 transition-all"><CheckCircle2 size={20} /></button>
                 </div>
               </div>
             )) : (
@@ -1290,7 +1287,6 @@ const Planning = () => {
     clearDraft();
   };
 
-  // Calendar helpers
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -1313,7 +1309,6 @@ const Planning = () => {
   const studiedDays = Object.keys(studyByDay).length;
   const totalMinutes = Object.values(studyByDay).reduce((a: number, b: number) => a + b, 0);
 
-  // Streak calculation
   const streak = useMemo(() => {
     let count = 0;
     const d = new Date();
@@ -1327,7 +1322,6 @@ const Planning = () => {
     return count;
   }, [sessions]);
 
-  // Goals with progress
   const goalsWithProgress = useMemo(() => goals.map(g => {
     let studied = 0;
     const now = new Date();
@@ -1357,7 +1351,6 @@ const Planning = () => {
 
   const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
-
   const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
   return (
@@ -1367,16 +1360,11 @@ const Planning = () => {
           <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Planejamento</h1>
           <p className="text-slate-500">Defina suas metas e acompanhe sua consistência.</p>
         </div>
-        <button
-          onClick={handleSaveGoal}
-          className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-white shadow-lg transition-all hover:opacity-90"
-          style={{ backgroundColor: config.accentColor }}
-        >
+        <button onClick={handleSaveGoal} className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-white shadow-lg transition-all hover:opacity-90" style={{ backgroundColor: config.accentColor }}>
           <Plus size={16} /> Nova Meta
         </button>
       </div>
 
-      {/* Stat cards */}
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: 'Sequência Atual', value: `🔥 ${streak} ${streak === 1 ? 'dia' : 'dias'}`, sub: 'dias consecutivos' },
@@ -1392,10 +1380,7 @@ const Planning = () => {
         ))}
       </div>
 
-      {/* Calendar + right column */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
-
-        {/* Calendar */}
         <div className="rounded-2xl border shadow-sm overflow-hidden" style={{background: 'var(--surface, #fff)', borderColor: 'var(--border, #e2e8f0)'}}>
           <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
             <div className="p-2 rounded-xl bg-slate-50"><Calendar size={16} className="text-slate-600" /></div>
@@ -1405,19 +1390,16 @@ const Planning = () => {
             </div>
           </div>
           <div className="p-6">
-            {/* Month nav */}
             <div className="flex items-center justify-between mb-5">
               <button onClick={prevMonth} className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors text-sm font-bold">‹</button>
               <span className="font-black text-inherit" style={{color:'inherit'}}>{monthNames[month]} {year}</span>
               <button onClick={nextMonth} className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors text-sm font-bold">›</button>
             </div>
-            {/* Weekdays */}
             <div className="grid grid-cols-7 gap-1 mb-2">
               {['DOM','SEG','TER','QUA','QUI','SEX','SÁB'].map(d => (
                 <div key={d} className="text-center text-[10px] font-bold text-slate-400 py-1">{d}</div>
               ))}
             </div>
-            {/* Days */}
             <div className="grid grid-cols-7 gap-1">
               {Array.from({ length: firstDayOfWeek }).map((_, i) => <div key={`e${i}`} />)}
               {Array.from({ length: daysInMonth }, (_, i) => {
@@ -1427,27 +1409,16 @@ const Planning = () => {
                 const hasHigh = mins >= 180;
                 const hasMed = mins > 0 && mins < 180;
                 return (
-                  <motion.div
-                    key={day}
-                    whileHover={{ scale: 1.1 }}
-                    className={cn(
-                      "aspect-square rounded-xl flex flex-col items-center justify-center text-xs font-semibold cursor-default relative transition-all",
-                      hasHigh ? 'text-white' : hasMed ? 'text-blue-800' : isToday ? '' : 'text-slate-400',
-                    )}
-                    style={{
-                      backgroundColor: hasHigh ? config.accentColor : hasMed ? config.accentColor + '30' : '#f8fafc',
-                      boxShadow: isToday ? `0 0 0 2px ${config.accentColor}` : 'none',
-                    }}
-                  >
+                  <motion.div key={day} whileHover={{ scale: 1.1 }}
+                    className={cn("aspect-square rounded-xl flex flex-col items-center justify-center text-xs font-semibold cursor-default relative transition-all",
+                      hasHigh ? 'text-white' : hasMed ? 'text-blue-800' : isToday ? '' : 'text-slate-400')}
+                    style={{ backgroundColor: hasHigh ? config.accentColor : hasMed ? config.accentColor + '30' : '#f8fafc', boxShadow: isToday ? `0 0 0 2px ${config.accentColor}` : 'none' }}>
                     {day}
-                    {mins > 0 && (
-                      <div className="w-1 h-1 rounded-full mt-0.5" style={{ backgroundColor: hasHigh ? 'white' : config.accentColor }} />
-                    )}
+                    {mins > 0 && <div className="w-1 h-1 rounded-full mt-0.5" style={{ backgroundColor: hasHigh ? 'white' : config.accentColor }} />}
                   </motion.div>
                 );
               })}
             </div>
-            {/* Legend */}
             <div className="flex items-center gap-4 mt-4 flex-wrap">
               {[
                 { bg: '#f1f5f9', border: true, label: 'Sem estudo' },
@@ -1467,9 +1438,7 @@ const Planning = () => {
           </div>
         </div>
 
-        {/* Right column */}
         <div className="flex flex-col gap-5">
-          {/* Form */}
           <div className="rounded-2xl border shadow-sm overflow-hidden" style={{background: 'var(--surface, #fff)', borderColor: 'var(--border, #e2e8f0)'}}>
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-3">
               <div className="p-2 rounded-xl bg-slate-50"><Target size={16} className="text-slate-600" /></div>
@@ -1497,7 +1466,6 @@ const Planning = () => {
             </div>
           </div>
 
-          {/* Metas ativas */}
           <div className="rounded-2xl border shadow-sm overflow-hidden" style={{background: 'var(--surface, #fff)', borderColor: 'var(--border, #e2e8f0)'}}>
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-3">
               <div className="p-2 rounded-xl bg-slate-50"><CheckCircle2 size={16} className="text-slate-600" /></div>
@@ -1517,13 +1485,8 @@ const Planning = () => {
                     <span className="text-xs font-semibold text-slate-500">{goal.studied}h / {goal.target_hours}h</span>
                   </div>
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${goal.pct}%` }}
-                      transition={{ duration: 0.8, delay: i * 0.1 }}
-                      className="h-full rounded-full"
-                      style={{ backgroundColor: barColors[goal.type] }}
-                    />
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${goal.pct}%` }} transition={{ duration: 0.8, delay: i * 0.1 }}
+                      className="h-full rounded-full" style={{ backgroundColor: barColors[goal.type] }} />
                   </div>
                   <p className="text-[11px] text-slate-400 text-right">{goal.pct}% concluído</p>
                 </motion.div>
@@ -1535,8 +1498,6 @@ const Planning = () => {
     </div>
   );
 };
-
-// --- REPORTS (novo dashboard analítico) ---
 
 const Reports = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -1563,7 +1524,7 @@ const Reports = () => {
     if (period === '90d') return 90;
     if (period === 'month') return new Date().getDate();
     if (period === 'year') return Math.ceil((new Date().getTime() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000);
-    if (period === 'all') return 3650; // ~10 years fallback
+    if (period === 'all') return 3650;
     return 7;
   };
 
@@ -1599,7 +1560,6 @@ const Reports = () => {
 
   const dateRange = useMemo(() => {
     if (filters.period === 'all') {
-      // Group by month - get months from first session to now
       if (sessions.length === 0) return [];
       const firstDate = sessions.map(s => s.date.substring(0, 10)).sort()[0];
       const months: string[] = [];
@@ -1612,7 +1572,6 @@ const Reports = () => {
       return months;
     }
     if (filters.period === 'year') {
-      // Group by month for the current year
       const year = new Date().getFullYear();
       return Array.from({length: new Date().getMonth() + 1}, (_, i) => `${year}-${String(i+1).padStart(2,'0')}`);
     }
@@ -1687,8 +1646,6 @@ const Reports = () => {
 
   return (
     <div className="space-y-8">
-
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Relatórios e Análises</h1>
@@ -1711,7 +1668,6 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total de Horas', value: `${totalHours.toFixed(1)}h`, icon: Clock, bg: 'bg-indigo-50', border: 'border-indigo-100', iconBg: 'bg-indigo-500', delta: <DeltaBadge value={hoursDiff} /> },
@@ -1730,7 +1686,6 @@ const Reports = () => {
         ))}
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 p-1 rounded-2xl w-fit" style={{background:'var(--border2,#f1f5f9)'}}>
         {([{ id: 'evolution', label: 'Evolução' }, { id: 'subjects', label: 'Disciplinas' }, { id: 'distribution', label: 'Distribuição' }] as const).map(tab => (
           <button key={tab.id} onClick={() => setActiveTabLocal(tab.id)} className={cn("px-6 py-2.5 rounded-xl font-bold text-sm transition-all", activeTab === tab.id ? "shadow-sm" : "opacity-60 hover:opacity-90")}>
@@ -1739,7 +1694,6 @@ const Reports = () => {
         ))}
       </div>
 
-      {/* Evolução */}
       {activeTab === 'evolution' && (
         <div className="rounded-2xl border shadow-sm p-6 space-y-4" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)'}}>
           <div className="flex items-center justify-between">
@@ -1753,27 +1707,17 @@ const Reports = () => {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border2,#f1f5f9)" />
                   <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={8} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} unit="h"
-                    domain={[0, (dataMax: number) => {
-                      const max = Math.ceil(dataMax * 1.2);
-                      return max < 1 ? 1 : max;
-                    }]}
-                    allowDecimals={false}
-                    width={36}
-                  />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.15)', fontSize: 13, background: 'var(--surface,#fff)', color: 'inherit' }}
+                    domain={[0, (dataMax: number) => { const max = Math.ceil(dataMax * 1.2); return max < 1 ? 1 : max; }]}
+                    allowDecimals={false} width={36} />
+                  <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.15)', fontSize: 13, background: 'var(--surface,#fff)', color: 'inherit' }}
                     formatter={(v: number, name: string) => v > 0 ? [`${v.toFixed(1)}h`, name] : null}
-                    cursor={{ fill: 'var(--border2,#f1f5f9)' }}
-                  />
-                  <Legend
-                    formatter={(value) => <span style={{fontSize: 12, fontWeight: 600, color: 'var(--text-muted,#64748b)'}}>{value}</span>}
-                  />
+                    cursor={{ fill: 'var(--border2,#f1f5f9)' }} />
+                  <Legend formatter={(value) => <span style={{fontSize: 12, fontWeight: 600, color: 'var(--text-muted,#64748b)'}}>{value}</span>} />
                   {barKeys.map((key, i) => (
                     <Bar key={key} dataKey={key} stackId="a"
                       fill={filters.subjectId === 'all' ? getSubjectColor(key) : selectedSubjectColor}
                       radius={i === barKeys.length - 1 ? [5, 5, 0, 0] : [0, 0, 0, 0]}
-                      maxBarSize={56}
-                    />
+                      maxBarSize={56} />
                   ))}
                 </BarChart>
               </ResponsiveContainer>
@@ -1783,14 +1727,9 @@ const Reports = () => {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 text-xs font-medium" style={{color:'var(--text-muted,#94a3b8)'}}>
-            <div className="w-6 border-t-2 border-dashed border-rose-400" />
-            <span>Linha de meta diária (configure em Planejamento)</span>
-          </div>
         </div>
       )}
 
-      {/* Disciplinas */}
       {activeTab === 'subjects' && (
         <div className="rounded-2xl border shadow-sm p-6 space-y-4" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)'}}>
           <div><h3 className="font-bold" style={{color: 'inherit'}}>Comparação entre Disciplinas</h3><p className="text-sm opacity-60">Horas estudadas por matéria no período</p></div>
@@ -1816,7 +1755,6 @@ const Reports = () => {
         </div>
       )}
 
-      {/* Distribuição */}
       {activeTab === 'distribution' && (
         <div className="rounded-2xl border shadow-sm p-6 space-y-6" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)'}}>
           <div><h3 className="font-bold" style={{color: 'inherit'}}>Distribuição por Disciplina</h3><p className="text-sm opacity-60">Percentual de tempo por matéria</p></div>
@@ -1826,56 +1764,36 @@ const Reports = () => {
             </div>
           ) : (
             <div className="flex flex-col lg:flex-row items-center gap-10">
-              {/* Donut com labels externos */}
               <div className="relative flex-shrink-0" style={{width: 320, height: 320}}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie
-                      data={distributionData}
-                      cx="50%" cy="50%"
-                      innerRadius={85} outerRadius={115}
-                      paddingAngle={3}
-                      dataKey="value"
-                      strokeWidth={0}
+                    <Pie data={distributionData} cx="50%" cy="50%" innerRadius={85} outerRadius={115} paddingAngle={3} dataKey="value" strokeWidth={0}
                       label={({ cx, cy, midAngle, outerRadius, name, pct }) => {
                         const RADIAN = Math.PI / 180;
                         const radius = outerRadius + 38;
                         const x = cx + radius * Math.cos(-midAngle * RADIAN);
                         const y = cy + radius * Math.sin(-midAngle * RADIAN);
                         const anchor = x > cx ? 'start' : 'end';
-                        // Truncate long names
                         const shortName = name.length > 14 ? name.substring(0, 13) + '…' : name;
                         return (
                           <g>
-                            <text x={x} y={y - 7} textAnchor={anchor} dominantBaseline="middle"
-                              style={{fontSize: 12, fontWeight: 700, fill: 'currentColor'}} className="recharts-text">
-                              {shortName}
-                            </text>
-                            <text x={x} y={y + 9} textAnchor={anchor} dominantBaseline="middle"
-                              style={{fontSize: 11, fontWeight: 600, opacity: 0.6}} className="recharts-text">
-                              {pct}%
-                            </text>
+                            <text x={x} y={y - 7} textAnchor={anchor} dominantBaseline="middle" style={{fontSize: 12, fontWeight: 700, fill: 'currentColor'}} className="recharts-text">{shortName}</text>
+                            <text x={x} y={y + 9} textAnchor={anchor} dominantBaseline="middle" style={{fontSize: 11, fontWeight: 600, opacity: 0.6}} className="recharts-text">{pct}%</text>
                           </g>
                         );
                       }}
-                      labelLine={{ stroke: 'var(--border,#e2e8f0)', strokeWidth: 1.5, strokeDasharray: '3 2' }}
-                    >
+                      labelLine={{ stroke: 'var(--border,#e2e8f0)', strokeWidth: 1.5, strokeDasharray: '3 2' }}>
                       {distributionData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                     </Pie>
-                    <Tooltip
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.15)', background: 'var(--surface,#fff)', color: 'inherit' }}
-                      formatter={(v: number, name: string) => [`${v.toFixed(1)}h`, name]}
-                    />
+                    <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.15)', background: 'var(--surface,#fff)', color: 'inherit' }}
+                      formatter={(v: number, name: string) => [`${v.toFixed(1)}h`, name]} />
                   </PieChart>
                 </ResponsiveContainer>
-                {/* Centro do donut */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <p className="text-4xl font-black" style={{color:'inherit'}}>{totalHoursDonut.toFixed(0)}h</p>
                   <p className="text-xs font-bold uppercase tracking-widest mt-1 opacity-40">total</p>
                 </div>
               </div>
-
-              {/* Legenda + barras laterais */}
               <div className="flex-1 space-y-4 w-full">
                 {distributionData.map((item, i) => (
                   <motion.div key={i} initial={{opacity:0, x:16}} animate={{opacity:1, x:0}} transition={{delay: i * 0.07}} className="space-y-1.5">
@@ -1890,8 +1808,7 @@ const Reports = () => {
                       </div>
                     </div>
                     <div className="h-2 rounded-full overflow-hidden" style={{background:'var(--border,#e2e8f0)'}}>
-                      <motion.div initial={{ width: 0 }} animate={{ width: `${item.pct}%` }}
-                        transition={{ duration: 0.7, delay: i * 0.08, ease: 'easeOut' }}
+                      <motion.div initial={{ width: 0 }} animate={{ width: `${item.pct}%` }} transition={{ duration: 0.7, delay: i * 0.08, ease: 'easeOut' }}
                         className="h-full rounded-full" style={{ backgroundColor: item.color }} />
                     </div>
                   </motion.div>
@@ -1902,15 +1819,12 @@ const Reports = () => {
         </div>
       )}
 
-      {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Ranking */}
         <div className="rounded-2xl border shadow-sm p-6 space-y-5" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)'}}>
           <div><h3 className="font-bold" style={{color: 'inherit'}}>Ranking por Disciplina</h3><p className="text-sm opacity-60">Ordenado por horas estudadas</p></div>
           <div className="space-y-3">
             {rankingData.length > 0 ? rankingData.map((item, i) => (
-              <div key={item.id} className="flex items-center gap-4 p-3 rounded-xl transition-colors" style={{}} onMouseEnter={e=>(e.currentTarget.style.background='var(--surface2,#f8fafc)')} onMouseLeave={e=>(e.currentTarget.style.background='')}>
+              <div key={item.id} className="flex items-center gap-4 p-3 rounded-xl transition-colors" onMouseEnter={e=>(e.currentTarget.style.background='var(--surface2,#f8fafc)')} onMouseLeave={e=>(e.currentTarget.style.background='')}>
                 <span className={cn("w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0", i === 0 ? "bg-amber-100 text-amber-700" : i === 1 ? "bg-slate-100 text-slate-600" : i === 2 ? "bg-orange-100 text-orange-700" : "bg-slate-50 text-slate-400")}>{i + 1}</span>
                 <div className="w-3 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
                 <div className="flex-1 min-w-0">
@@ -1927,7 +1841,6 @@ const Reports = () => {
           </div>
         </div>
 
-        {/* Desempenho Exercícios */}
         <div className="rounded-2xl border shadow-sm p-6 space-y-5" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)'}}>
           <div><h3 className="font-bold" style={{color: 'inherit'}}>Desempenho em Exercícios</h3><p className="text-sm opacity-60">Aproveitamento por disciplina</p></div>
           <div className="space-y-4">
@@ -1966,7 +1879,6 @@ const Reports = () => {
             })()}
           </div>
         </div>
-
       </div>
     </div>
   );
@@ -1986,6 +1898,24 @@ const ACCENT_COLORS = [
   { label: 'Âmbar', value: '#d97706' },
 ];
 
+// ✅ FIX Bug de digitação: componente memoizado fora do SettingsPage
+// Evita re-render do input a cada keystroke causado pelo AppContext
+const NameInput = React.memo(({ value, onChange, accentColor }: {
+  value: string;
+  onChange: (v: string) => void;
+  accentColor: string;
+}) => (
+  <input
+    type="text"
+    autoComplete="off"
+    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-medium focus:outline-none focus:ring-2 transition-all"
+    style={{ '--tw-ring-color': accentColor } as any}
+    value={value}
+    onChange={e => onChange(e.target.value)}
+    placeholder="Ex: João Silva"
+  />
+));
+
 const SettingsPage = () => {
   const { config, setConfig } = useAppConfig();
   const [local, setLocal] = useState<AppConfig>(config);
@@ -2000,11 +1930,15 @@ const SettingsPage = () => {
       .then(([s, e, g]) => { setSessions(s); setExercises(e); setGoals(g); });
   }, []);
 
+  const handleNameChange = useCallback((v: string) => setNameValue(v), []);
+
   const handleSave = async () => {
     const final = { ...local, userName: nameValue };
     setLocal(final);
     setConfig(final);
     applyTheme(final);
+    // ✅ FIX: Salva também no localStorage para garantir sincronia
+    localStorage.setItem('planoaprovado_user_name', nameValue);
     await api.preferences.set('app_config', final);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -2063,19 +1997,12 @@ const SettingsPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Perfil */}
         <Section title="Perfil" icon={User}>
           <div className="space-y-5">
             <div>
               <label className="block text-sm font-bold mb-2 opacity-80">Seu nome</label>
-              <input
-                type="text"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 font-medium focus:outline-none focus:ring-2 transition-all"
-                style={{ '--tw-ring-color': local.accentColor } as any}
-                value={nameValue}
-                onChange={e => setNameValue(e.target.value)}
-                placeholder="Ex: João Silva"
-              />
+              {/* ✅ FIX: usa NameInput memoizado — sem lag de digitação */}
+              <NameInput value={nameValue} onChange={handleNameChange} accentColor={local.accentColor} />
               <p className="text-xs text-slate-400 mt-1">Aparece no Dashboard como "Olá, {nameValue || 'você'}!"</p>
             </div>
             <div>
@@ -2094,7 +2021,6 @@ const SettingsPage = () => {
           </div>
         </Section>
 
-        {/* Tema */}
         <Section title="Tema" icon={Palette}>
           <div className="space-y-5">
             <div>
@@ -2108,20 +2034,14 @@ const SettingsPage = () => {
                   <button
                     key={t.id}
                     onClick={() => { const next = { ...local, theme: t.id }; setLocal(next); setConfig(next); applyTheme(next); }}
-                    className={cn(
-                      "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
-                      t.bg, t.border,
-                      local.theme === t.id ? "ring-2 ring-offset-2" : "opacity-70 hover:opacity-100"
-                    )}
+                    className={cn("flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all", t.bg, t.border, local.theme === t.id ? "ring-2 ring-offset-2" : "opacity-70 hover:opacity-100")}
                     style={local.theme === t.id ? { '--tw-ring-color': local.accentColor } as any : {}}
                   >
                     <div className={cn("p-2 rounded-lg", local.theme === t.id ? "bg-white/20" : "bg-black/5")}>
                       <t.icon size={20} className={t.text} />
                     </div>
                     <span className={cn("text-xs font-bold", t.text)}>{t.label}</span>
-                    {local.theme === t.id && (
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: local.accentColor }} />
-                    )}
+                    {local.theme === t.id && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: local.accentColor }} />}
                   </button>
                 ))}
               </div>
@@ -2135,10 +2055,7 @@ const SettingsPage = () => {
                     key={c.value}
                     onClick={() => { const next = { ...local, accentColor: c.value }; setLocal(next); setConfig(next); applyTheme(next); }}
                     className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all hover:scale-105"
-                    style={{
-                      borderColor: local.accentColor === c.value ? c.value : 'transparent',
-                      backgroundColor: local.accentColor === c.value ? c.value + '15' : '#f8fafc'
-                    }}
+                    style={{ borderColor: local.accentColor === c.value ? c.value : 'transparent', backgroundColor: local.accentColor === c.value ? c.value + '15' : '#f8fafc' }}
                   >
                     <div className="w-6 h-6 rounded-full shadow-sm" style={{ backgroundColor: c.value }} />
                     <span className="text-[10px] font-bold text-slate-500">{c.label}</span>
@@ -2149,18 +2066,12 @@ const SettingsPage = () => {
           </div>
         </Section>
 
-        {/* Exportar dados */}
         <Section title="Exportar Dados" icon={Download}>
           <div className="space-y-4">
             <p className="text-sm opacity-60">Faça backup dos seus dados de estudo.</p>
             <div className="grid grid-cols-1 gap-3">
-              <button
-                onClick={handleExportJSON}
-                className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all group"
-              >
-                <div className="p-3 rounded-xl bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                  <Database size={20} className="text-indigo-600" />
-                </div>
+              <button onClick={handleExportJSON} className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all group">
+                <div className="p-3 rounded-xl bg-indigo-50 group-hover:bg-indigo-100 transition-colors"><Database size={20} className="text-indigo-600" /></div>
                 <div className="text-left flex-1">
                   <p className="font-bold" style={{color: 'inherit'}}>Backup completo (JSON)</p>
                   <p className="text-xs opacity-60">Sessões, exercícios e metas</p>
@@ -2168,13 +2079,8 @@ const SettingsPage = () => {
                 <Download size={16} className="text-slate-400 group-hover:text-slate-600" />
               </button>
 
-              <button
-                onClick={handleExportCSV}
-                className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all group"
-              >
-                <div className="p-3 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 transition-colors">
-                  <Download size={20} className="text-emerald-600" />
-                </div>
+              <button onClick={handleExportCSV} className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all group">
+                <div className="p-3 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 transition-colors"><Download size={20} className="text-emerald-600" /></div>
                 <div className="text-left flex-1">
                   <p className="font-bold" style={{color: 'inherit'}}>Sessões de estudo (CSV)</p>
                   <p className="text-xs opacity-60">{sessions.length} sessões registradas</p>
@@ -2185,7 +2091,6 @@ const SettingsPage = () => {
           </div>
         </Section>
 
-        {/* Resumo de dados */}
         <Section title="Seus Dados" icon={Database}>
           <div className="grid grid-cols-2 gap-4">
             {[
@@ -2204,7 +2109,6 @@ const SettingsPage = () => {
 
       </div>
 
-      {/* Preview do tema */}
       <div className="rounded-2xl border shadow-sm p-6" style={{background: 'var(--surface, #fff)', borderColor: 'var(--border, #e2e8f0)'}}>
         <h3 className="font-bold text-inherit mb-4" style={{color:'inherit'}}>Preview das alterações</h3>
         <div className="flex items-center gap-4 flex-wrap">
@@ -2278,16 +2182,9 @@ const SessionHistory = () => {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-3 p-5 rounded-2xl border" style={{background: th.surface, borderColor: th.border}}>
-        <input
-          type="text"
-          placeholder="🔍 Buscar por disciplina ou notas..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl border text-sm"
-          style={selectStyle}
-        />
+        <input type="text" placeholder="🔍 Buscar por disciplina ou notas..." value={search} onChange={e => setSearch(e.target.value)}
+          className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl border text-sm" style={selectStyle} />
         <select className="px-4 py-2.5 rounded-xl border text-sm font-bold" style={selectStyle} value={filters.period} onChange={e => setFilters({...filters, period: e.target.value})}>
           <option value="7d">Últimos 7 dias</option>
           <option value="30d">Últimos 30 dias</option>
@@ -2307,7 +2204,6 @@ const SessionHistory = () => {
         </select>
       </div>
 
-      {/* Session list */}
       <div className="space-y-3">
         {filtered.length === 0 ? (
           <div className="text-center py-16 rounded-2xl border" style={{background: th.surface, borderColor: th.border}}>
@@ -2349,7 +2245,6 @@ export default function App() {
   const [todayMinutes, setTodayMinutes] = useState(0);
   const [dailyGoalMet, setDailyGoalMet] = useState(false);
   const [userId, setUserId] = useState<string | null>(() => localStorage.getItem('planoaprovado_user_id'));
-  const [userName, setUserName] = useState<string>(() => localStorage.getItem('planoaprovado_user_name') || 'Estudante');
 
   const refreshBadges = useCallback(async () => {
     const [reviews, stats] = await Promise.all([
@@ -2365,8 +2260,21 @@ export default function App() {
     api.preferences.get().then(prefs => {
       if (prefs.app_config) {
         const saved = prefs.app_config as AppConfig;
+        // ✅ FIX: Se config salva tem nome padrão vazio/Estudante, tenta recuperar do localStorage
+        const storedName = localStorage.getItem('planoaprovado_user_name');
+        if (storedName && (!saved.userName || saved.userName === 'Estudante')) {
+          saved.userName = storedName;
+        }
         setConfigState(saved);
         applyTheme(saved);
+      } else {
+        // ✅ FIX: Primeiro acesso — carrega nome do localStorage (definido pelo WelcomeScreen)
+        const storedName = localStorage.getItem('planoaprovado_user_name');
+        if (storedName) {
+          const initial = { ...defaultConfig, userName: storedName };
+          setConfigState(initial);
+          applyTheme(initial);
+        }
       }
     });
     refreshBadges();
@@ -2383,7 +2291,13 @@ export default function App() {
     return (
       <WelcomeScreen
         onConfirm={(name, id) => {
-          setUserName(name);
+          // ✅ FIX: Salva nome no localStorage E sincroniza imediatamente com o AppConfig
+          localStorage.setItem('planoaprovado_user_name', name);
+          localStorage.setItem('planoaprovado_user_id', id);
+          const updated = { ...defaultConfig, userName: name };
+          setConfigState(updated);
+          applyTheme(updated);
+          api.preferences.set('app_config', updated);
           setUserId(id);
         }}
       />
@@ -2406,18 +2320,6 @@ export default function App() {
       default: return <Dashboard />;
     }
   };
-
-  const themeStyles: React.CSSProperties = config.theme === 'dark'
-    ? { background: '#0f172a', color: '#f1f5f9' }
-    : config.theme === 'bw'
-    ? { background: '#f5f5f5', color: '#111111' }
-    : {};
-
-  const sidebarStyles: React.CSSProperties = config.theme === 'dark'
-    ? { background: '#1e293b', borderColor: '#334155' }
-    : config.theme === 'bw'
-    ? { background: '#ffffff', borderColor: '#d1d5db' }
-    : {};
 
   return (
     <AppContext.Provider value={{ config, setConfig, refreshBadges, navigateTo: setActiveTab }}>
