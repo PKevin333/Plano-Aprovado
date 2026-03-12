@@ -194,7 +194,7 @@ const Card = ({ children, className, title, subtitle, action }: CardProps) => {
   return (
     <div className={cn("rounded-2xl border shadow-sm overflow-hidden", className)} style={t.card}>
       {(title || action) && (
-        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${t.border2}` }}>
+        <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${t.border2}` }}>
           <div>
             {title && <h3 className="font-semibold" style={{ color: t.text }}>{title}</h3>}
             {subtitle && <p className="text-sm" style={{ color: t.textMuted }}>{subtitle}</p>}
@@ -202,7 +202,7 @@ const Card = ({ children, className, title, subtitle, action }: CardProps) => {
           {action}
         </div>
       )}
-      <div className="p-6">{children}</div>
+      <div className="p-4 sm:p-6">{children}</div>
     </div>
   );
 };
@@ -210,10 +210,10 @@ const Card = ({ children, className, title, subtitle, action }: CardProps) => {
 const StatCard = ({ label, value, icon: Icon, color, trend }: { label: string, value: string | number, icon: any, color: string, trend?: string }) => {
   const t = useTheme();
   return (
-    <div className="p-6 rounded-2xl border shadow-sm flex items-start justify-between" style={t.card}>
+    <div className="p-4 sm:p-6 rounded-2xl border shadow-sm flex items-start justify-between" style={t.card}>
       <div>
         <p className="text-sm font-medium mb-1" style={{ color: t.textMuted }}>{label}</p>
-        <h3 className="text-2xl font-bold" style={{ color: t.text }}>{value}</h3>
+        <h3 className="text-xl sm:text-2xl font-bold" style={{ color: t.text }}>{value}</h3>
         {trend && (
           <p className="text-xs font-medium text-emerald-500 mt-2 flex items-center gap-1">
             <TrendingUp size={12} />{trend}
@@ -272,7 +272,7 @@ const Dashboard = () => {
       <div className="flex items-center justify-between">
         <div>
           {/* ✅ FIX: usa config.userName que agora é sincronizado corretamente do WelcomeScreen */}
-          <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Olá, {config.userName || 'Estudante'}! 👋</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Olá, {config.userName || 'Estudante'}! 👋</h1>
           <p style={{color: 'inherit', opacity: 0.6}}>Aqui está o resumo do seu progresso hoje.</p>
         </div>
         <div className="flex gap-3">
@@ -283,7 +283,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatCard label="Horas Hoje" value={formatDuration(stats.today_duration)} icon={Clock} color="bg-emerald-500" trend="+12% que ontem" />
         <StatCard label="Meta Diária" value={`${stats.daily_goal}h`} icon={Target} color="bg-indigo-500" />
         <StatCard label="Revisões Pendentes" value={stats.pending_reviews_count} icon={RefreshCcw} color="bg-orange-500" />
@@ -291,8 +291,8 @@ const Dashboard = () => {
         <StatCard label="Consistência" value={`${consistencyPct}%`} icon={TrendingUp} color="bg-rose-500" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2" title="Progresso da Meta Diária" subtitle="Acompanhamento em tempo real">
+      <div className="grid grid-cols-1 xl:grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 sm:gap-6 lg:gap-8">
+        <Card className="lg:col-span-2 xl:col-span-2" title="Progresso da Meta Diária" subtitle="Acompanhamento em tempo real">
           <div className="space-y-6">
             <div className="flex items-end justify-between">
               <div>
@@ -403,7 +403,7 @@ const Subjects = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Disciplinas</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Disciplinas</h1>
           <p className="text-slate-500">Gerencie as matérias do seu plano de estudos.</p>
         </div>
         <button onClick={() => setIsAdding(true)} className="text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2" style={{backgroundColor:'var(--accent,#2563eb)'}}>
@@ -412,7 +412,7 @@ const Subjects = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 sm:gap-6">
         {subjects.map((subject) => (
           <Card key={subject.id} className="group relative">
             <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -591,7 +591,7 @@ const Topics = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Assuntos</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Assuntos</h1>
           <p className="text-slate-500">Cadastre os tópicos específicos de cada matéria.</p>
         </div>
         <button onClick={() => setIsAdding(true)} className="text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2" style={{backgroundColor:'var(--accent,#2563eb)'}}>
@@ -610,7 +610,7 @@ const Topics = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 sm:gap-6">
         {topics.map((topic) => {
           const subject = subjects.find(s => s.id === topic.subject_id);
           return (
@@ -694,7 +694,7 @@ const Objectives = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Objetivos</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Objetivos</h1>
           <p className="text-slate-500">Defina seus focos principais (Ex: Concurso X, Vestibular Y).</p>
         </div>
         <button onClick={() => setIsAdding(true)} className="text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2" style={{backgroundColor:'var(--accent,#2563eb)'}}>
@@ -702,7 +702,7 @@ const Objectives = () => {
           Novo Objetivo
         </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 sm:gap-6">
         {objectives.map(obj => (
           <Card key={obj.id}>
             <h3 className="font-bold text-inherit text-lg" style={{color:'inherit'}}>{obj.name}</h3>
@@ -828,7 +828,7 @@ const StudyTimer = () => {
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Foco Total</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Foco Total</h1>
           <p className="text-slate-500">Gerencie seu tempo de estudo com precisão.</p>
         </div>
         <button onClick={() => setShowManualModal(true)} className="bg-white text-inherit border border-slate-200 px-6 py-3 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2" style={{color:'inherit'}}>
@@ -1015,7 +1015,7 @@ const Reviews = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Revisões Programadas</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Revisões Programadas</h1>
           <p className="text-slate-500">A curva do esquecimento não tem chance contra você.</p>
         </div>
         <button
@@ -1104,7 +1104,7 @@ const Reviews = () => {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
         <Card title="Próximas Revisões" subtitle="Fique em dia com seu cronograma">
           <div className="space-y-4">
             {pendingReviews.length > 0 ? pendingReviews.map(review => (
@@ -1190,15 +1190,15 @@ const ExercisesPage = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Exercícios</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Exercícios</h1>
           <p className="text-slate-500">Monitore seu desempenho e identifique pontos de melhoria.</p>
         </div>
         <button onClick={() => setIsAdding(true)} className="bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-600 transition-all flex items-center gap-2">
           <Plus size={20} />Registrar Desempenho
         </button>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2" title="Histórico de Questões">
+      <div className="grid grid-cols-1 xl:grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 sm:gap-6 lg:gap-8">
+        <Card className="lg:col-span-2 xl:col-span-2" title="Histórico de Questões">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
@@ -1357,7 +1357,7 @@ const Planning = () => {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Planejamento</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Planejamento</h1>
           <p className="text-slate-500">Defina suas metas e acompanhe sua consistência.</p>
         </div>
         <button onClick={handleSaveGoal} className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-white shadow-lg transition-all hover:opacity-90" style={{ backgroundColor: config.accentColor }}>
@@ -1365,7 +1365,7 @@ const Planning = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {[
           { label: 'Sequência Atual', value: `🔥 ${streak} ${streak === 1 ? 'dia' : 'dias'}`, sub: 'dias consecutivos' },
           { label: 'Dias Estudados', value: `${studiedDays} / ${daysInMonth}`, sub: `${Math.round((studiedDays/daysInMonth)*100)}% de consistência` },
@@ -1648,7 +1648,7 @@ const Reports = () => {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Relatórios e Análises</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Relatórios e Análises</h1>
           <p className="text-slate-500">Visualize sua evolução e tome decisões baseadas em dados.</p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -1819,7 +1819,7 @@ const Reports = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <div className="rounded-2xl border shadow-sm p-6 space-y-5" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)'}}>
           <div><h3 className="font-bold" style={{color: 'inherit'}}>Ranking por Disciplina</h3><p className="text-sm opacity-60">Ordenado por horas estudadas</p></div>
           <div className="space-y-3">
@@ -1975,7 +1975,7 @@ const SettingsPage = () => {
         <div className="p-2 rounded-xl bg-slate-50"><Icon size={18} className="text-slate-600" /></div>
         <h3 className="font-bold" style={{color: 'inherit'}}>{title}</h3>
       </div>
-      <div className="p-6">{children}</div>
+      <div className="p-4 sm:p-6">{children}</div>
     </div>
   );
 
@@ -1983,7 +1983,7 @@ const SettingsPage = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{color: 'inherit'}}>Configurações</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Configurações</h1>
           <p className="text-slate-500">Personalize sua experiência no app.</p>
         </div>
         <button
@@ -1996,7 +1996,7 @@ const SettingsPage = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 
         <Section title="Perfil" icon={User}>
           <div className="space-y-5">
@@ -2178,7 +2178,7 @@ const SessionHistory = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{color:'inherit'}}>Histórico de Sessões</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color:'inherit'}}>Histórico de Sessões</h1>
           <p style={{color: th.textMuted}}>{filtered.length} sessão(ões) • {totalHours.toFixed(1)}h no período</p>
         </div>
       </div>
@@ -2322,60 +2322,229 @@ export default function App() {
     }
   };
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const navItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', tab: 'dashboard' },
+    { icon: Flag, label: 'Objetivos', tab: 'objectives' },
+    { icon: BookOpen, label: 'Disciplinas', tab: 'subjects' },
+    { icon: Layers, label: 'Assuntos', tab: 'topics' },
+    { icon: Timer, label: 'Cronômetro', tab: 'timer' },
+    { icon: RefreshCcw, label: 'Revisões', tab: 'reviews', badge: pendingReviewsCount },
+    { icon: Target, label: 'Exercícios', tab: 'exercises' },
+    { icon: Calendar, label: 'Planejamento', tab: 'planning' },
+    { icon: History, label: 'Histórico', tab: 'history' },
+    { icon: BarChart3, label: 'Relatórios', tab: 'reports' },
+    { icon: Settings, label: 'Configurações', tab: 'settings' },
+  ];
+
+  const handleNavClick = (tab: string) => {
+    setActiveTab(tab);
+    setSidebarOpen(false);
+  };
+
+  const sidebarBg = config.theme === 'dark' ? '#1e293b' : '#ffffff';
+  const sidebarBorder = config.theme === 'dark' ? '#334155' : '#e2e8f0';
+  const appBg = config.theme === 'dark' ? '#0f172a' : config.theme === 'bw' ? '#f5f5f5' : '#f8fafc';
+  const appColor = config.theme === 'dark' ? '#f1f5f9' : '#0f172a';
+
+  const LogoIcon = () => (
+    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white shadow-lg flex-shrink-0"
+      style={{ background: `linear-gradient(135deg, ${config.accentColor}cc, ${config.accentColor})` }}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M12 3L2 8l10 5 10-5-10-5z" fill="white" fillOpacity="0.95"/>
+        <path d="M6 11v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        <line x1="2" y1="8" x2="2" y2="14" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+        <circle cx="2" cy="14" r="1" fill="white" fillOpacity="0.8"/>
+      </svg>
+    </div>
+  );
+
+  const SidebarContent = () => (
+    <>
+      <div className="flex items-center gap-3 px-2">
+        <LogoIcon />
+        <h1 className="text-lg font-black tracking-tight" style={{ color: 'inherit' }}>
+          Plano<span style={{ color: config.accentColor }}>Aprovado</span>
+        </h1>
+      </div>
+
+      <nav className="flex-1 space-y-1 overflow-y-auto">
+        {navItems.map(item => (
+          <SidebarItem
+            key={item.tab}
+            icon={item.icon}
+            label={item.label}
+            active={activeTab === item.tab}
+            onClick={() => handleNavClick(item.tab)}
+            badge={item.badge}
+            badgeColor="#ef4444"
+          />
+        ))}
+      </nav>
+
+      <div style={{ borderTop: `1px solid ${sidebarBorder}`, paddingTop: '16px' }}>
+        <div className="p-3 rounded-2xl" style={{ background: config.theme === 'dark' ? '#0f172a' : '#f8fafc' }}>
+          <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: config.theme === 'dark' ? '#475569' : '#94a3b8' }}>Meta do Dia</p>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold" style={{ color: config.theme === 'dark' ? '#94a3b8' : '#475569' }}>
+              {Math.floor(todayMinutes/60)}h {todayMinutes%60}m / {config.dailyGoalHours}h
+            </span>
+            {dailyGoalMet && <span className="text-xs font-black text-emerald-500">✓</span>}
+          </div>
+          <div className="h-2 rounded-full overflow-hidden" style={{ background: config.theme === 'dark' ? '#334155' : '#e2e8f0' }}>
+            <div className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(100, config.dailyGoalHours > 0 ? (todayMinutes / (config.dailyGoalHours * 60)) * 100 : 0)}%`, backgroundColor: dailyGoalMet ? '#10b981' : config.accentColor }} />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <AppContext.Provider value={{ config, setConfig, refreshBadges, navigateTo: setActiveTab }}>
-      <div className="min-h-screen flex font-sans" style={{ background: config.theme === 'dark' ? '#0f172a' : config.theme === 'bw' ? '#f5f5f5' : '#f8fafc', color: config.theme === 'dark' ? '#f1f5f9' : '#0f172a' }}>
-        <aside className="w-72 border-r p-6 flex flex-col gap-8 sticky top-0 h-screen" style={{ background: config.theme === 'dark' ? '#1e293b' : '#ffffff', borderColor: config.theme === 'dark' ? '#334155' : '#e2e8f0' }}>
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg flex-shrink-0" style={{ background: `linear-gradient(135deg, ${config.accentColor}cc, ${config.accentColor})` }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M12 3L2 8l10 5 10-5-10-5z" fill="white" fillOpacity="0.95"/>
-                <path d="M6 11v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                <line x1="2" y1="8" x2="2" y2="14" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
-                <circle cx="2" cy="14" r="1" fill="white" fillOpacity="0.8"/>
+      <div className="min-h-screen flex font-sans" style={{ background: appBg, color: appColor }}>
+
+        {/* ── DESKTOP SIDEBAR (oculta em mobile) ── */}
+        <aside className="hidden lg:flex w-64 xl:w-72 border-r p-5 flex-col gap-6 sticky top-0 h-screen overflow-y-auto flex-shrink-0"
+          style={{ background: sidebarBg, borderColor: sidebarBorder }}>
+          <SidebarContent />
+        </aside>
+
+        {/* ── MOBILE OVERLAY ── */}
+        <AnimatePresence>
+          {sidebarOpen && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+                onClick={() => setSidebarOpen(false)}
+              />
+              {/* Drawer */}
+              <motion.aside
+                initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+                className="fixed top-0 left-0 h-full w-72 z-50 flex flex-col gap-6 p-5 lg:hidden overflow-y-auto"
+                style={{ background: sidebarBg, borderRight: `1px solid ${sidebarBorder}` }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <LogoIcon />
+                    <h1 className="text-lg font-black tracking-tight" style={{ color: 'inherit' }}>
+                      Plano<span style={{ color: config.accentColor }}>Aprovado</span>
+                    </h1>
+                  </div>
+                  <button onClick={() => setSidebarOpen(false)}
+                    className="p-2 rounded-xl hover:bg-slate-100 transition-colors"
+                    style={{ color: appColor }}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <nav className="flex-1 space-y-1 overflow-y-auto">
+                  {navItems.map(item => (
+                    <SidebarItem
+                      key={item.tab}
+                      icon={item.icon}
+                      label={item.label}
+                      active={activeTab === item.tab}
+                      onClick={() => handleNavClick(item.tab)}
+                      badge={item.badge}
+                      badgeColor="#ef4444"
+                    />
+                  ))}
+                </nav>
+
+                <div style={{ borderTop: `1px solid ${sidebarBorder}`, paddingTop: '16px' }}>
+                  <div className="p-3 rounded-2xl" style={{ background: config.theme === 'dark' ? '#0f172a' : '#f8fafc' }}>
+                    <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: config.theme === 'dark' ? '#475569' : '#94a3b8' }}>Meta do Dia</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold" style={{ color: config.theme === 'dark' ? '#94a3b8' : '#475569' }}>
+                        {Math.floor(todayMinutes/60)}h {todayMinutes%60}m / {config.dailyGoalHours}h
+                      </span>
+                      {dailyGoalMet && <span className="text-xs font-black text-emerald-500">✓ Meta!</span>}
+                    </div>
+                    <div className="h-2 rounded-full overflow-hidden" style={{ background: config.theme === 'dark' ? '#334155' : '#e2e8f0' }}>
+                      <div className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, config.dailyGoalHours > 0 ? (todayMinutes / (config.dailyGoalHours * 60)) * 100 : 0)}%`, backgroundColor: dailyGoalMet ? '#10b981' : config.accentColor }} />
+                    </div>
+                  </div>
+                </div>
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* ── MAIN CONTENT ── */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+          {/* ── MOBILE TOP BAR ── */}
+          <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b sticky top-0 z-30 flex-shrink-0"
+            style={{ background: sidebarBg, borderColor: sidebarBorder }}>
+            <button onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-xl transition-colors"
+              style={{ color: appColor }}>
+              {/* Hamburger */}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
               </svg>
-            </div>
-            <h1 className="text-xl font-black tracking-tight" style={{ color: 'inherit' }}>
+            </button>
+
+            <h1 className="text-base font-black tracking-tight" style={{ color: 'inherit' }}>
               Plano<span style={{ color: config.accentColor }}>Aprovado</span>
             </h1>
-          </div>
-          <nav className="flex-1 space-y-2">
-            <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-            <SidebarItem icon={Flag} label="Objetivos" active={activeTab === 'objectives'} onClick={() => setActiveTab('objectives')} />
-            <SidebarItem icon={BookOpen} label="Disciplinas" active={activeTab === 'subjects'} onClick={() => setActiveTab('subjects')} />
-            <SidebarItem icon={Layers} label="Assuntos" active={activeTab === 'topics'} onClick={() => setActiveTab('topics')} />
-            <SidebarItem icon={Timer} label="Cronômetro" active={activeTab === 'timer'} onClick={() => setActiveTab('timer')} />
-            <SidebarItem icon={RefreshCcw} label="Revisões" active={activeTab === 'reviews'} onClick={() => setActiveTab('reviews')} badge={pendingReviewsCount} badgeColor="#ef4444" />
-            <SidebarItem icon={Target} label="Exercícios" active={activeTab === 'exercises'} onClick={() => setActiveTab('exercises')} />
-            <SidebarItem icon={Calendar} label="Planejamento" active={activeTab === 'planning'} onClick={() => setActiveTab('planning')} />
-            <SidebarItem icon={History} label="Histórico" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
-            <SidebarItem icon={BarChart3} label="Relatórios" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} />
-          </nav>
-          <div className="pt-6 space-y-2" style={{ borderTop: `1px solid ${config.theme === 'dark' ? '#334155' : '#f1f5f9'}`, paddingTop: '24px' }}>
-            <SidebarItem icon={Settings} label="Configurações" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
-            <div className="p-4 rounded-2xl" style={{ background: config.theme === 'dark' ? '#0f172a' : '#f8fafc' }}>
-              <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: config.theme === 'dark' ? '#475569' : '#94a3b8' }}>Meta do Dia</p>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold" style={{ color: config.theme === 'dark' ? '#94a3b8' : '#475569' }}>
-                  {Math.floor(todayMinutes/60)}h {todayMinutes%60}m / {config.dailyGoalHours}h
+
+            {/* Badge de revisões no mobile */}
+            <div className="relative">
+              <button onClick={() => handleNavClick('reviews')}
+                className="p-2 rounded-xl transition-colors"
+                style={{ color: appColor }}>
+                <RefreshCcw size={20} />
+              </button>
+              {pendingReviewsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center text-white bg-red-500">
+                  {pendingReviewsCount > 9 ? '9+' : pendingReviewsCount}
                 </span>
-                {dailyGoalMet && <span className="text-xs font-black text-emerald-500">✓ Meta!</span>}
-              </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ background: config.theme === 'dark' ? '#334155' : '#e2e8f0' }}>
-                <div className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, config.dailyGoalHours > 0 ? (todayMinutes / (config.dailyGoalHours * 60)) * 100 : 0)}%`, backgroundColor: dailyGoalMet ? '#10b981' : config.accentColor }} />
-              </div>
+              )}
             </div>
+          </header>
+
+          {/* ── PAGE CONTENT ── */}
+          <div className="flex-1 overflow-y-auto relative">
+            <div className="p-4 sm:p-6 lg:p-8 xl:p-10 max-w-6xl mx-auto">
+              {renderContent()}
+            </div>
+            <AutoSaveIndicator />
           </div>
-        </aside>
-        <div className="flex-1 p-10 overflow-y-auto relative">
-          <div className="max-w-6xl mx-auto">
-            {renderContent()}
-          </div>
-          <AutoSaveIndicator />
+
+          {/* ── MOBILE BOTTOM NAV ── */}
+          <nav className="lg:hidden flex items-center justify-around border-t py-2 flex-shrink-0 sticky bottom-0 z-30"
+            style={{ background: sidebarBg, borderColor: sidebarBorder }}>
+            {[
+              { icon: LayoutDashboard, tab: 'dashboard', label: 'Início' },
+              { icon: Timer, tab: 'timer', label: 'Foco' },
+              { icon: RefreshCcw, tab: 'reviews', label: 'Revisões', badge: pendingReviewsCount },
+              { icon: BarChart3, tab: 'reports', label: 'Dados' },
+              { icon: Settings, tab: 'settings', label: 'Config' },
+            ].map(item => (
+              <button key={item.tab} onClick={() => handleNavClick(item.tab)}
+                className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all relative"
+                style={{ color: activeTab === item.tab ? config.accentColor : (config.theme === 'dark' ? '#64748b' : '#94a3b8') }}>
+                <item.icon size={20} />
+                <span className="text-[10px] font-bold">{item.label}</span>
+                {item.badge && item.badge > 0 && (
+                  <span className="absolute -top-0.5 right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white bg-red-500">
+                    {item.badge > 9 ? '9+' : item.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
         </div>
       </div>
     </AppContext.Provider>
   );
 }
-
