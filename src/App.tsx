@@ -1898,20 +1898,21 @@ const ACCENT_COLORS = [
   { label: 'Âmbar', value: '#d97706' },
 ];
 
-// ✅ FIX Bug de digitação: componente memoizado fora do SettingsPage
-// Evita re-render do input a cada keystroke causado pelo AppContext
-const NameInput = React.memo(({ value, onChange, accentColor }: {
-  value: string;
-  onChange: (v: string) => void;
+// ✅ FIX Bug de digitação: input NÃO controlado (uncontrolled)
+// Usar value+onChange dentro do AppContext causa re-render a cada tecla → lag
+// Com defaultValue + ref, o DOM gerencia o valor nativamente, zero re-render durante digitação
+const NameInput = React.memo(({ defaultValue, inputRef, accentColor }: {
+  defaultValue: string;
+  inputRef: React.RefObject<HTMLInputElement>;
   accentColor: string;
 }) => (
   <input
+    ref={inputRef}
     type="text"
     autoComplete="off"
+    defaultValue={defaultValue}
     className="w-full px-4 py-3 rounded-xl border border-slate-200 font-medium focus:outline-none focus:ring-2 transition-all"
     style={{ '--tw-ring-color': accentColor } as any}
-    value={value}
-    onChange={e => onChange(e.target.value)}
     placeholder="Ex: João Silva"
   />
 ));
@@ -1919,7 +1920,8 @@ const NameInput = React.memo(({ value, onChange, accentColor }: {
 const SettingsPage = () => {
   const { config, setConfig } = useAppConfig();
   const [local, setLocal] = useState<AppConfig>(config);
-  const [nameValue, setNameValue] = useState(config.userName);
+  // ✅ Ref em vez de state — lê o valor só na hora de salvar, sem re-render a cada tecla
+  const nameInputRef = React.useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -1930,14 +1932,13 @@ const SettingsPage = () => {
       .then(([s, e, g]) => { setSessions(s); setExercises(e); setGoals(g); });
   }, []);
 
-  const handleNameChange = useCallback((v: string) => setNameValue(v), []);
-
   const handleSave = async () => {
+    // Lê o valor diretamente do DOM — sem state intermediário
+    const nameValue = nameInputRef.current?.value.trim() || config.userName;
     const final = { ...local, userName: nameValue };
     setLocal(final);
     setConfig(final);
     applyTheme(final);
-    // ✅ FIX: Salva também no localStorage para garantir sincronia
     localStorage.setItem('planoaprovado_user_name', nameValue);
     await api.preferences.set('app_config', final);
     setSaved(true);
@@ -2001,9 +2002,9 @@ const SettingsPage = () => {
           <div className="space-y-5">
             <div>
               <label className="block text-sm font-bold mb-2 opacity-80">Seu nome</label>
-              {/* ✅ FIX: usa NameInput memoizado — sem lag de digitação */}
-              <NameInput value={nameValue} onChange={handleNameChange} accentColor={local.accentColor} />
-              <p className="text-xs text-slate-400 mt-1">Aparece no Dashboard como "Olá, {nameValue || 'você'}!"</p>
+              {/* ✅ FIX: input não controlado com ref — zero re-render durante digitação */}
+              <NameInput defaultValue={config.userName} inputRef={nameInputRef} accentColor={local.accentColor} />
+              <p className="text-xs text-slate-400 mt-1">Clique em "Salvar alterações" para confirmar o nome.</p>
             </div>
             <div>
               <label className="block text-sm font-bold mb-2 opacity-80">Meta diária de horas</label>
@@ -2114,9 +2115,9 @@ const SettingsPage = () => {
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50">
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: local.accentColor }}>
-              {nameValue.charAt(0).toUpperCase() || 'U'}
+              {(nameInputRef.current?.value || config.userName).charAt(0).toUpperCase() || 'U'}
             </div>
-            <span className="font-bold" style={{color: 'inherit'}}>Olá, {nameValue || 'você'}! 👋</span>
+            <span className="font-bold" style={{color: 'inherit'}}>Olá, {nameInputRef.current?.value || config.userName || 'você'}! 👋</span>
           </div>
           <button className="px-5 py-2.5 rounded-xl text-white font-bold text-sm shadow" style={{ backgroundColor: local.accentColor }}>
             Botão de ação
