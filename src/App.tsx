@@ -253,10 +253,9 @@ const Dashboard = () => {
 
   const progress = stats.daily_goal > 0 ? (stats.today_duration / (stats.daily_goal * 60)) * 100 : 0;
 
-  // ✅ FIX: Consistência calculada de verdade — % de dias com estudo no mês atual
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daysSoFar = now.getDate(); // só conta até hoje, não o mês todo
+  const daysSoFar = now.getDate();
   const studiedDaysThisMonth = new Set(
     sessions
       .filter(s => {
@@ -271,7 +270,6 @@ const Dashboard = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          {/* ✅ FIX: usa config.userName que agora é sincronizado corretamente do WelcomeScreen */}
           <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Olá, {config.userName || 'Estudante'}! 👋</h1>
           <p style={{color: 'inherit', opacity: 0.6}}>Aqui está o resumo do seu progresso hoje.</p>
         </div>
@@ -287,7 +285,6 @@ const Dashboard = () => {
         <StatCard label="Horas Hoje" value={formatDuration(stats.today_duration)} icon={Clock} color="bg-emerald-500" trend="+12% que ontem" />
         <StatCard label="Meta Diária" value={`${stats.daily_goal}h`} icon={Target} color="bg-indigo-500" />
         <StatCard label="Revisões Pendentes" value={stats.pending_reviews_count} icon={RefreshCcw} color="bg-orange-500" />
-        {/* ✅ FIX: Consistência real, calculada dos dias estudados no mês */}
         <StatCard label="Consistência" value={`${consistencyPct}%`} icon={TrendingUp} color="bg-rose-500" />
       </div>
 
@@ -351,6 +348,35 @@ const Dashboard = () => {
   );
 };
 
+// ✅ FIX: DifficultyStars — componente dedicado para exibir/editar dificuldade
+// Evita o bug de parseInt em onChange do range que retornava NaN ou string
+const DifficultyStars = ({ value, onChange, readonly = false }: { value: number; onChange?: (v: number) => void; readonly?: boolean }) => {
+  // Garante que value é sempre número inteiro entre 1 e 5
+  const safeValue = Math.max(1, Math.min(5, Math.round(Number(value) || 1)));
+  return (
+    <div className="flex gap-1 items-center">
+      {[1, 2, 3, 4, 5].map(star => (
+        <button
+          key={star}
+          type="button"
+          disabled={readonly}
+          onClick={() => !readonly && onChange && onChange(star)}
+          className={cn(
+            "w-6 h-6 rounded-full transition-all",
+            star <= safeValue ? "bg-indigo-500 scale-110" : "bg-slate-200",
+            !readonly && "hover:scale-125 cursor-pointer",
+            readonly && "cursor-default"
+          )}
+          title={readonly ? `Dificuldade: ${safeValue}/5` : `Definir dificuldade ${star}`}
+        />
+      ))}
+      {!readonly && (
+        <span className="ml-2 text-xs font-bold text-slate-500">{safeValue}/5</span>
+      )}
+    </div>
+  );
+};
+
 const Subjects = () => {
   const { config } = useAppConfig();
   const th = useTheme();
@@ -376,14 +402,24 @@ const Subjects = () => {
   const handleAdd = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!draft.name.trim()) return;
-    await api.subjects.create(draft);
+    // ✅ FIX: Garante que difficulty é número inteiro válido antes de salvar
+    const safeData = {
+      ...draft,
+      difficulty: Math.max(1, Math.min(5, Math.round(Number(draft.difficulty) || 3)))
+    };
+    await api.subjects.create(safeData);
     setIsAdding(false);
     clearDraft();
     api.subjects.list().then(setSubjects);
   };
 
   const handleUpdate = async (id: number, data: Partial<Subject>) => {
-    await api.subjects.update(id, data);
+    // ✅ FIX: Se vier difficulty, garantir que é número inteiro
+    const safeData = { ...data };
+    if (safeData.difficulty !== undefined) {
+      safeData.difficulty = Math.max(1, Math.min(5, Math.round(Number(safeData.difficulty) || 3)));
+    }
+    await api.subjects.update(id, safeData);
     api.subjects.list().then(setSubjects);
   };
 
@@ -412,7 +448,7 @@ const Subjects = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 sm:gap-6">
         {subjects.map((subject) => (
           <Card key={subject.id} className="group relative">
             <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -421,18 +457,42 @@ const Subjects = () => {
             </div>
             {editingId === subject.id ? (
               <div className="space-y-4">
-                <input type="text" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold" value={subject.name} onChange={e => handleUpdate(subject.id, { name: e.target.value })} />
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold"
+                  style={th.input}
+                  value={subject.name}
+                  onChange={e => handleUpdate(subject.id, { name: e.target.value })}
+                />
                 <ColorPicker value={subject.color} onChange={color => handleUpdate(subject.id, { color })} />
                 <div className="grid grid-cols-2 gap-2">
-                  <select className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs" value={subject.priority} onChange={e => handleUpdate(subject.id, { priority: e.target.value as any })}>
+                  <select
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs"
+                    style={th.input}
+                    value={subject.priority}
+                    onChange={e => handleUpdate(subject.id, { priority: e.target.value as Subject['priority'] })}
+                  >
                     <option value="low">Baixa</option>
                     <option value="medium">Média</option>
                     <option value="high">Alta</option>
                   </select>
-                  <select className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs" value={subject.objective_id || ''} onChange={e => handleUpdate(subject.id, { objective_id: e.target.value ? parseInt(e.target.value) : undefined })}>
+                  <select
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs"
+                    style={th.input}
+                    value={subject.objective_id || ''}
+                    onChange={e => handleUpdate(subject.id, { objective_id: e.target.value ? parseInt(e.target.value) : undefined })}
+                  >
                     <option value="">Sem Objetivo</option>
                     {objectives.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                   </select>
+                </div>
+                {/* ✅ FIX: Usa DifficultyStars em vez de range para edição inline */}
+                <div>
+                  <label className="block text-xs font-bold mb-2 opacity-70">Dificuldade</label>
+                  <DifficultyStars
+                    value={subject.difficulty}
+                    onChange={v => handleUpdate(subject.id, { difficulty: v })}
+                  />
                 </div>
                 <button onClick={() => setEditingId(null)} className="w-full py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200">Fechar Edição</button>
               </div>
@@ -451,14 +511,13 @@ const Subjects = () => {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Prioridade</span>
                     <span className={cn("px-2 py-0.5 rounded-md text-[10px] font-bold uppercase", subject.priority === 'high' ? "bg-rose-100 text-rose-600" : subject.priority === 'medium' ? "bg-orange-100 text-orange-600" : "bg-emerald-100 text-emerald-600")}>
-                      {subject.priority}
+                      {subject.priority === 'high' ? 'Alta' : subject.priority === 'medium' ? 'Média' : 'Baixa'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Dificuldade</span>
-                    <div className="flex gap-1">
-                      {[1,2,3,4,5].map(star => <div key={star} className={cn("w-2 h-2 rounded-full", star <= subject.difficulty ? "bg-indigo-500" : "bg-slate-200")} />)}
-                    </div>
+                    {/* ✅ FIX: Usa DifficultyStars readonly para exibição */}
+                    <DifficultyStars value={subject.difficulty} readonly />
                   </div>
                 </div>
               </>
@@ -476,7 +535,19 @@ const Subjects = () => {
                 <form onSubmit={handleAdd} className="space-y-6">
                   <div>
                     <label className="block text-sm font-bold mb-2 opacity-80">Nome da Matéria</label>
-                    <SubjectAutocomplete value={draft.name} onChange={name => setDraft({...draft, name})} onSelect={s => setDraft({...draft, name: s.name, color: s.color, priority: s.priority, difficulty: s.difficulty, objective_id: s.objective_id})} />
+                    <SubjectAutocomplete
+                      value={draft.name}
+                      onChange={name => setDraft({...draft, name})}
+                      onSelect={s => setDraft({
+                        ...draft,
+                        name: s.name,
+                        color: s.color,
+                        priority: s.priority,
+                        // ✅ FIX: Garante que difficulty do autocomplete é número
+                        difficulty: Math.max(1, Math.min(5, Math.round(Number(s.difficulty) || 3))),
+                        objective_id: s.objective_id
+                      })}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-bold mb-2 opacity-80">Escolha uma Cor</label>
@@ -485,26 +556,42 @@ const Subjects = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-bold mb-2 opacity-80">Prioridade</label>
-                      <select className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" value={draft.priority} onChange={e => setDraft({...draft, priority: e.target.value as any})}>
+                      <select
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none"
+                        style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}}
+                        value={draft.priority}
+                        onChange={e => setDraft({...draft, priority: e.target.value as Subject['priority']})}
+                      >
                         <option value="low">Baixa</option>
                         <option value="medium">Média</option>
                         <option value="high">Alta</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-bold mb-2 opacity-80">Dificuldade (1-5)</label>
-                      <input type="range" min="1" max="5" className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-emerald-500 mt-4" value={draft.difficulty} onChange={e => setDraft({...draft, difficulty: parseInt(e.target.value)})} />
+                      <label className="block text-sm font-bold mb-2 opacity-80">Objetivo</label>
+                      <select
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none"
+                        style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}}
+                        value={draft.objective_id || ''}
+                        onChange={e => setDraft({...draft, objective_id: e.target.value ? parseInt(e.target.value) : undefined})}
+                      >
+                        <option value="">Nenhum</option>
+                        {objectives.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+                      </select>
                     </div>
                   </div>
+                  {/* ✅ FIX: Dificuldade agora usa DifficultyStars — sem bug de NaN/string */}
                   <div>
-                    <label className="block text-sm font-bold mb-2 opacity-80">Objetivo</label>
-                    <select className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" value={draft.objective_id || ''} onChange={e => setDraft({...draft, objective_id: e.target.value ? parseInt(e.target.value) : undefined})}>
-                      <option value="">Nenhum</option>
-                      {objectives.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-                    </select>
+                    <label className="block text-sm font-bold mb-3 opacity-80">
+                      Dificuldade
+                    </label>
+                    <DifficultyStars
+                      value={draft.difficulty}
+                      onChange={v => setDraft({...draft, difficulty: v})}
+                    />
                   </div>
                   <div className="flex gap-4 pt-4">
-                    <button type="button" onClick={() => setIsAdding(false)} className="flex-1 px-6 py-3 rounded-xl font-bold transition-all" style={{color:'var(--text-muted,#64748b)'}}>Cancelar</button>
+                    <button type="button" onClick={() => { setIsAdding(false); clearDraft(); }} className="flex-1 px-6 py-3 rounded-xl font-bold transition-all" style={{color:'var(--text-muted,#64748b)'}}>Cancelar</button>
                     <button type="submit" className="flex-1 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all" style={{backgroundColor:'var(--accent,#2563eb)'}}>Criar</button>
                   </div>
                 </form>
@@ -610,7 +697,7 @@ const Topics = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 sm:gap-6">
         {topics.map((topic) => {
           const subject = subjects.find(s => s.id === topic.subject_id);
           return (
@@ -662,7 +749,7 @@ const Topics = () => {
                     <textarea className="w-full px-4 py-3 rounded-xl border h-24 resize-none" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.description} onChange={e => setDraft({...draft, description: e.target.value})} />
                   </div>
                   <div className="flex gap-4 pt-4">
-                    <button type="button" onClick={() => setIsAdding(false)} className="flex-1 px-6 py-3 rounded-xl font-bold transition-all" style={{color:'var(--text-muted,#64748b)'}}>Cancelar</button>
+                    <button type="button" onClick={() => { setIsAdding(false); clearDraft(); }} className="flex-1 px-6 py-3 rounded-xl font-bold transition-all" style={{color:'var(--text-muted,#64748b)'}}>Cancelar</button>
                     <button type="submit" className="flex-1 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all" style={{backgroundColor:'var(--accent,#2563eb)'}}>Criar</button>
                   </div>
                 </form>
@@ -702,7 +789,7 @@ const Objectives = () => {
           Novo Objetivo
         </button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 sm:gap-6">
         {objectives.map(obj => (
           <Card key={obj.id}>
             <h3 className="font-bold text-inherit text-lg" style={{color:'inherit'}}>{obj.name}</h3>
@@ -757,11 +844,13 @@ const StudyTimer = () => {
   useEffect(() => {
     const saved = localStorage.getItem('academiaflow_timer');
     if (saved) {
-      const { seconds: s, isActive: a, isPaused: p, lastUpdate, draft: savedDraft } = JSON.parse(saved);
-      if (a && !p) { const elapsed = Math.floor((Date.now() - lastUpdate) / 1000); setSeconds(s + elapsed); }
-      else setSeconds(s);
-      setIsActive(a); setIsPaused(p);
-      if (savedDraft) setDraft(savedDraft);
+      try {
+        const { seconds: s, isActive: a, isPaused: p, lastUpdate, draft: savedDraft } = JSON.parse(saved);
+        if (a && !p) { const elapsed = Math.floor((Date.now() - lastUpdate) / 1000); setSeconds(s + elapsed); }
+        else setSeconds(s);
+        setIsActive(a); setIsPaused(p);
+        if (savedDraft) setDraft(savedDraft);
+      } catch { /* ignore corrupt data */ }
     }
   }, []);
 
@@ -776,10 +865,9 @@ const StudyTimer = () => {
   }, [draft.subject_id]);
 
   useEffect(() => {
-    let interval: any = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     if (isActive && !isPaused) interval = setInterval(() => setSeconds(s => s + 1), 1000);
-    else clearInterval(interval);
-    return () => clearInterval(interval);
+    return () => { if (interval) clearInterval(interval); };
   }, [isActive, isPaused]);
 
   const formatTime = (s: number) => {
@@ -787,9 +875,18 @@ const StudyTimer = () => {
     return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
   };
 
-  const handleFinishTimer = () => { setIsActive(false); setIsPaused(false); setDraft({ ...draft, duration: Math.ceil(seconds / 60) }); setShowFinishModal(true); };
+  const handleFinishTimer = () => {
+    setIsActive(false);
+    setIsPaused(false);
+    setDraft({ ...draft, duration: Math.ceil(seconds / 60) });
+    setShowFinishModal(true);
+  };
+
   const handleCancelTimer = () => {
-    if (confirm('Deseja realmente cancelar o cronômetro?')) { setSeconds(0); setIsActive(false); setIsPaused(false); localStorage.removeItem('academiaflow_timer'); }
+    if (confirm('Deseja realmente cancelar o cronômetro?')) {
+      setSeconds(0); setIsActive(false); setIsPaused(false);
+      localStorage.removeItem('academiaflow_timer');
+    }
   };
 
   const handleSaveSession = async (sessionData: any) => {
@@ -801,7 +898,15 @@ const StudyTimer = () => {
       finalDuration = (endH * 60 + endM) - (startH * 60 + startM);
       if (finalDuration < 0) finalDuration += 24 * 60;
     }
-    await api.sessions.create({ subject_id: sessionData.subject_id, topic_id: sessionData.topic_id || undefined, type: sessionData.type, notes: sessionData.notes, duration: finalDuration, date: sessionData.date || new Date().toISOString() });
+    if (finalDuration <= 0) return alert('A duração deve ser maior que zero');
+    await api.sessions.create({
+      subject_id: sessionData.subject_id,
+      topic_id: sessionData.topic_id || undefined,
+      type: sessionData.type,
+      notes: sessionData.notes,
+      duration: finalDuration,
+      date: sessionData.date || new Date().toISOString()
+    });
     const prefs = await api.preferences.get();
     const globalEnabled = prefs.reviews_global_enabled !== false;
     const disabledSubjects: number[] = prefs.reviews_disabled_subjects || [];
@@ -809,15 +914,22 @@ const StudyTimer = () => {
     let msg = 'Sessão salva com sucesso!';
     if (globalEnabled && subjectEnabled) {
       const now = new Date();
-      for (const r of [{ type: '24h' as Review['type'], days: 1 }, { type: '7d' as Review['type'], days: 7 }, { type: '30d' as Review['type'], days: 30 }]) {
-        const scheduledDate = new Date(now); scheduledDate.setDate(now.getDate() + r.days);
+      for (const r of [
+        { type: '24h' as Review['type'], days: 1 },
+        { type: '7d' as Review['type'], days: 7 },
+        { type: '30d' as Review['type'], days: 30 }
+      ]) {
+        const scheduledDate = new Date(now);
+        scheduledDate.setDate(now.getDate() + r.days);
         await api.reviews.create({ subject_id: sessionData.subject_id, scheduled_date: scheduledDate.toISOString(), type: r.type });
       }
       msg += ' Revisões agendadas.';
     } else {
       msg += ' Revisões não agendadas (desativadas nas configurações).';
     }
-    setSeconds(0); setIsActive(false); setIsPaused(false); setShowFinishModal(false); setShowManualModal(false); clearDraft();
+    setSeconds(0); setIsActive(false); setIsPaused(false);
+    setShowFinishModal(false); setShowManualModal(false);
+    clearDraft();
     localStorage.removeItem('academiaflow_timer');
     alert(msg);
   };
@@ -844,12 +956,22 @@ const StudyTimer = () => {
             <div className="text-7xl font-black font-mono mb-8 tracking-tighter" style={{color:'inherit'}}>{formatTime(seconds)}</div>
             <div className="flex flex-wrap justify-center gap-4">
               {!isActive ? (
-                <button onClick={() => { if (!draft.subject_id) return alert('Selecione uma disciplina antes de iniciar.'); setIsActive(true); setIsPaused(false); }} className="px-10 py-4 rounded-2xl font-bold text-lg bg-emerald-500 text-white shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    if (!draft.subject_id) return alert('Selecione uma disciplina antes de iniciar.');
+                    setIsActive(true); setIsPaused(false);
+                  }}
+                  className="px-10 py-4 rounded-2xl font-bold text-lg bg-emerald-500 text-white shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center gap-3"
+                >
                   <Play size={24} /> Iniciar
                 </button>
               ) : (
                 <>
-                  <button onClick={() => setIsPaused(!isPaused)} className={cn("px-8 py-4 rounded-2xl font-bold text-lg shadow-xl transition-all flex items-center gap-3", isPaused ? "bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-600" : "bg-amber-500 text-white shadow-amber-500/20 hover:bg-amber-600")}>
+                  <button
+                    onClick={() => setIsPaused(!isPaused)}
+                    className={cn("px-8 py-4 rounded-2xl font-bold text-lg shadow-xl transition-all flex items-center gap-3",
+                      isPaused ? "bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-600" : "bg-amber-500 text-white shadow-amber-500/20 hover:bg-amber-600")}
+                  >
                     {isPaused ? <Play size={24} /> : <Pause size={24} />}{isPaused ? 'Retomar' : 'Pausar'}
                   </button>
                   <button onClick={handleFinishTimer} className="px-8 py-4 rounded-2xl font-bold text-lg bg-slate-900 text-white shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center gap-3"><Square size={20} />Finalizar</button>
@@ -860,13 +982,25 @@ const StudyTimer = () => {
           </Card>
           <div className="grid grid-cols-2 gap-4">
             <Card title="Disciplina">
-              <select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" value={draft.subject_id} onChange={e => setDraft({...draft, subject_id: parseInt(e.target.value)})} disabled={isActive}>
+              <select
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}}
+                value={draft.subject_id}
+                onChange={e => setDraft({...draft, subject_id: parseInt(e.target.value) || 0})}
+                disabled={isActive}
+              >
                 <option value="">Selecione...</option>
                 {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </Card>
             <Card title="Assunto">
-              <select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" value={draft.topic_id} onChange={e => setDraft({...draft, topic_id: parseInt(e.target.value)})} disabled={!draft.subject_id || isActive}>
+              <select
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}}
+                value={draft.topic_id}
+                onChange={e => setDraft({...draft, topic_id: parseInt(e.target.value) || 0})}
+                disabled={!draft.subject_id || isActive}
+              >
                 <option value="">Selecione...</option>
                 {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
@@ -876,8 +1010,24 @@ const StudyTimer = () => {
         <div className="space-y-6">
           <Card title="Tipo de Estudo">
             <div className="grid grid-cols-1 gap-2">
-              {[{ id: 'theory', label: 'Teoria', icon: BookOpen, color: 'indigo' }, { id: 'revision', label: 'Revisão', icon: RefreshCcw, color: 'emerald' }, { id: 'exercises', label: 'Exercícios', icon: Target, color: 'amber' }, { id: 'simulated', label: 'Simulado', icon: BarChart3, color: 'rose' }].map(type => (
-                <button key={type.id} disabled={isActive} onClick={() => setDraft({...draft, type: type.id as any})} className={cn("flex items-center gap-3 p-4 rounded-2xl border-2 transition-all font-bold", draft.type === type.id ? `border-${type.color}-500 bg-${type.color}-50 text-${type.color}-700` : "border-transparent bg-slate-50 text-slate-500 hover:bg-slate-100", isActive && "opacity-50 cursor-not-allowed")}>
+              {[
+                { id: 'theory', label: 'Teoria', icon: BookOpen, color: 'indigo' },
+                { id: 'revision', label: 'Revisão', icon: RefreshCcw, color: 'emerald' },
+                { id: 'exercises', label: 'Exercícios', icon: Target, color: 'amber' },
+                { id: 'simulated', label: 'Simulado', icon: BarChart3, color: 'rose' }
+              ].map(type => (
+                <button
+                  key={type.id}
+                  disabled={isActive}
+                  onClick={() => setDraft({...draft, type: type.id as Session['type']})}
+                  className={cn(
+                    "flex items-center gap-3 p-4 rounded-2xl border-2 transition-all font-bold",
+                    draft.type === type.id
+                      ? `border-${type.color}-500 bg-${type.color}-50 text-${type.color}-700`
+                      : "border-transparent bg-slate-50 text-slate-500 hover:bg-slate-100",
+                    isActive && "opacity-50 cursor-not-allowed"
+                  )}
+                >
                   <type.icon size={20} />{type.label}
                 </button>
               ))}
@@ -894,13 +1044,39 @@ const StudyTimer = () => {
                 <h2 className="text-2xl font-bold text-inherit mb-6" style={{color:'inherit'}}>Confirmar Sessão de Estudo</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <div><label className="block text-sm font-bold mb-2 opacity-80">Duração (minutos)</label><input type="number" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" value={draft.duration} onChange={e => setDraft({...draft, duration: parseInt(e.target.value) || 0})} /></div>
-                    <div><label className="block text-sm font-bold mb-2 opacity-80">Disciplina</label><select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" value={draft.subject_id} onChange={e => setDraft({...draft, subject_id: parseInt(e.target.value)})}>{subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-                    <div><label className="block text-sm font-bold mb-2 opacity-80">Assunto</label><select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" value={draft.topic_id} onChange={e => setDraft({...draft, topic_id: parseInt(e.target.value)})}><option value="">Nenhum</option>{topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Duração (minutos)</label>
+                      <input type="number" min="1" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.duration} onChange={e => setDraft({...draft, duration: parseInt(e.target.value) || 0})} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Disciplina</label>
+                      <select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.subject_id} onChange={e => setDraft({...draft, subject_id: parseInt(e.target.value) || 0})}>
+                        <option value="">Selecione...</option>
+                        {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Assunto</label>
+                      <select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.topic_id} onChange={e => setDraft({...draft, topic_id: parseInt(e.target.value) || 0})}>
+                        <option value="">Nenhum</option>
+                        {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    </div>
                   </div>
                   <div className="space-y-4">
-                    <div><label className="block text-sm font-bold mb-2 opacity-80">Tipo</label><select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" value={draft.type} onChange={e => setDraft({...draft, type: e.target.value as any})}><option value="theory">Teoria</option><option value="revision">Revisão</option><option value="exercises">Exercícios</option><option value="simulated">Simulado</option></select></div>
-                    <div><label className="block text-sm font-bold mb-2 opacity-80">Observações</label><textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 h-32 resize-none" placeholder="O que você aprendeu?" value={draft.notes} onChange={e => setDraft({...draft, notes: e.target.value})} /></div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Tipo</label>
+                      <select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.type} onChange={e => setDraft({...draft, type: e.target.value as Session['type']})}>
+                        <option value="theory">Teoria</option>
+                        <option value="revision">Revisão</option>
+                        <option value="exercises">Exercícios</option>
+                        <option value="simulated">Simulado</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Observações</label>
+                      <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 h-32 resize-none" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="O que você aprendeu?" value={draft.notes} onChange={e => setDraft({...draft, notes: e.target.value})} />
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-4 mt-8">
@@ -921,28 +1097,63 @@ const StudyTimer = () => {
                 <h2 className="text-2xl font-bold text-inherit mb-6" style={{color:'inherit'}}>Registrar Estudo Manualmente</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
-                    <div><label className="block text-sm font-bold mb-2 opacity-80">Data</label><input type="date" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" value={draft.date} onChange={e => setDraft({...draft, date: e.target.value})} /></div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Data</label>
+                      <input type="date" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.date} onChange={e => setDraft({...draft, date: e.target.value})} />
+                    </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-slate-700">Modo de Registro</label>
                       <div className="flex gap-2">
-                        <button onClick={() => setDraft({...draft, manualMode: 'duration'})} className={cn("flex-1 py-2 rounded-lg text-sm font-bold border-2 transition-all", draft.manualMode === 'duration' ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400")}>Duração</button>
-                        <button onClick={() => setDraft({...draft, manualMode: 'range'})} className={cn("flex-1 py-2 rounded-lg text-sm font-bold border-2 transition-all", draft.manualMode === 'range' ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400")}>Horário</button>
+                        <button type="button" onClick={() => setDraft({...draft, manualMode: 'duration'})} className={cn("flex-1 py-2 rounded-lg text-sm font-bold border-2 transition-all", draft.manualMode === 'duration' ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400")}>Duração</button>
+                        <button type="button" onClick={() => setDraft({...draft, manualMode: 'range'})} className={cn("flex-1 py-2 rounded-lg text-sm font-bold border-2 transition-all", draft.manualMode === 'range' ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400")}>Horário</button>
                       </div>
                     </div>
                     {draft.manualMode === 'duration' ? (
-                      <div><label className="block text-sm font-bold mb-2 opacity-80">Duração (minutos)</label><input type="number" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" placeholder="Ex: 60" value={draft.duration} onChange={e => setDraft({...draft, duration: parseInt(e.target.value) || 0})} /></div>
+                      <div>
+                        <label className="block text-sm font-bold mb-2 opacity-80">Duração (minutos)</label>
+                        <input type="number" min="1" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="Ex: 60" value={draft.duration || ''} onChange={e => setDraft({...draft, duration: parseInt(e.target.value) || 0})} />
+                      </div>
                     ) : (
                       <div className="grid grid-cols-2 gap-2">
-                        <div><label className="block text-xs font-bold text-slate-500 mb-1">Início</label><input type="time" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold" value={draft.startTime} onChange={e => setDraft({...draft, startTime: e.target.value})} /></div>
-                        <div><label className="block text-xs font-bold text-slate-500 mb-1">Fim</label><input type="time" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold" value={draft.endTime} onChange={e => setDraft({...draft, endTime: e.target.value})} /></div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-1">Início</label>
+                          <input type="time" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.startTime} onChange={e => setDraft({...draft, startTime: e.target.value})} />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-1">Fim</label>
+                          <input type="time" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.endTime} onChange={e => setDraft({...draft, endTime: e.target.value})} />
+                        </div>
                       </div>
                     )}
-                    <div><label className="block text-sm font-bold mb-2 opacity-80">Disciplina</label><select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" value={draft.subject_id} onChange={e => setDraft({...draft, subject_id: parseInt(e.target.value)})}><option value="">Selecione...</option>{subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Disciplina</label>
+                      <select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.subject_id} onChange={e => setDraft({...draft, subject_id: parseInt(e.target.value) || 0})}>
+                        <option value="">Selecione...</option>
+                        {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
                   </div>
                   <div className="space-y-4">
-                    <div><label className="block text-sm font-bold mb-2 opacity-80">Assunto</label><select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" value={draft.topic_id} onChange={e => setDraft({...draft, topic_id: parseInt(e.target.value)})} disabled={!draft.subject_id}><option value="">Nenhum</option>{topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
-                    <div><label className="block text-sm font-bold mb-2 opacity-80">Tipo</label><select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" value={draft.type} onChange={e => setDraft({...draft, type: e.target.value as any})}><option value="theory">Teoria</option><option value="revision">Revisão</option><option value="exercises">Exercícios</option><option value="simulated">Simulado</option></select></div>
-                    <div><label className="block text-sm font-bold mb-2 opacity-80">Observações</label><textarea className="w-full px-4 py-3 rounded-xl border h-24 resize-none" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="O que você estudou?" value={draft.notes} onChange={e => setDraft({...draft, notes: e.target.value})} /></div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Assunto</label>
+                      <select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.topic_id} onChange={e => setDraft({...draft, topic_id: parseInt(e.target.value) || 0})} disabled={!draft.subject_id}>
+                        <option value="">Nenhum</option>
+                        {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Tipo</label>
+                      <select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.type} onChange={e => setDraft({...draft, type: e.target.value as Session['type']})}>
+                        <option value="theory">Teoria</option>
+                        <option value="revision">Revisão</option>
+                        <option value="exercises">Exercícios</option>
+                        <option value="simulated">Simulado</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Observações</label>
+                      <textarea className="w-full px-4 py-3 rounded-xl border h-24 resize-none" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="O que você estudou?" value={draft.notes} onChange={e => setDraft({...draft, notes: e.target.value})} />
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-4 mt-8">
@@ -1177,13 +1388,24 @@ const ExercisesPage = () => {
   const [draft, setDraft, clearDraft] = useDraft('new_exercise', { subject_id: 0, topic_id: 0, total: 0, correct: 0, notes: '' });
 
   useEffect(() => { api.subjects.list().then(setSubjects); api.exercises.list().then(setExercises); }, []);
-  useEffect(() => { if (draft.subject_id) api.topics.list(draft.subject_id).then(setTopics); else setTopics([]); }, [draft.subject_id]);
+  useEffect(() => {
+    if (draft.subject_id) api.topics.list(draft.subject_id).then(setTopics);
+    else setTopics([]);
+  }, [draft.subject_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (draft.total <= 0) return alert('O total de questões deve ser maior que zero');
     if (draft.correct > draft.total) return alert('Acertos não podem ser maiores que o total');
-    await api.exercises.create({ ...draft, topic_id: draft.topic_id || undefined, incorrect: draft.total - draft.correct, date: new Date().toISOString() });
-    setIsAdding(false); clearDraft(); api.exercises.list().then(setExercises);
+    await api.exercises.create({
+      ...draft,
+      topic_id: draft.topic_id || undefined,
+      incorrect: draft.total - draft.correct,
+      date: new Date().toISOString()
+    });
+    setIsAdding(false);
+    clearDraft();
+    api.exercises.list().then(setExercises);
   };
 
   return (
@@ -1197,18 +1419,23 @@ const ExercisesPage = () => {
           <Plus size={20} />Registrar Desempenho
         </button>
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 sm:gap-6 lg:gap-8">
-        <Card className="lg:col-span-2 xl:col-span-2" title="Histórico de Questões">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4 sm:gap-6 lg:gap-8">
+        <Card className="xl:col-span-2" title="Histórico de Questões">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                  <th className="pb-4 px-4">Data</th><th className="pb-4 px-4">Disciplina</th><th className="pb-4 px-4">Assunto</th><th className="pb-4 px-4">Total</th><th className="pb-4 px-4">Acertos</th><th className="pb-4 px-4">Aproveitamento</th>
+                  <th className="pb-4 px-4">Data</th>
+                  <th className="pb-4 px-4">Disciplina</th>
+                  <th className="pb-4 px-4">Assunto</th>
+                  <th className="pb-4 px-4">Total</th>
+                  <th className="pb-4 px-4">Acertos</th>
+                  <th className="pb-4 px-4">Aproveitamento</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {exercises.map(ex => (
-                  <tr key={ex.id} className="text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <tr key={ex.id} className="text-sm hover:bg-slate-50 transition-colors" style={{color:'inherit'}}>
                     <td className="py-4 px-4">{format(new Date(ex.date), "dd/MM/yy")}</td>
                     <td className="py-4 px-4 font-bold">{ex.subject_name}</td>
                     <td className="py-4 px-4">{ex.topic_name || '-'}</td>
@@ -1216,12 +1443,22 @@ const ExercisesPage = () => {
                     <td className="py-4 px-4 text-emerald-600 font-bold">{ex.correct}</td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden min-w-[60px]"><div className="h-full bg-indigo-500" style={{ width: `${ex.percent_correct}%` }} /></div>
+                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden min-w-[60px]">
+                          <div className="h-full bg-indigo-500" style={{ width: `${ex.percent_correct}%` }} />
+                        </div>
                         <span className="font-bold">{Math.round(ex.percent_correct)}%</span>
                       </div>
                     </td>
                   </tr>
                 ))}
+                {exercises.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                      <Target size={40} className="mx-auto mb-2 opacity-30" />
+                      <p>Nenhum exercício registrado ainda.</p>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -1234,8 +1471,14 @@ const ExercisesPage = () => {
                 <p className="text-4xl font-bold" style={{color:'inherit'}}>{exercises.reduce((acc, curr) => acc + curr.total, 0)}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-emerald-50 p-4 rounded-2xl text-center"><p className="text-xs text-emerald-600 font-bold uppercase mb-1">Acertos</p><p className="text-2xl font-bold text-emerald-700">{exercises.reduce((acc, curr) => acc + curr.correct, 0)}</p></div>
-                <div className="bg-rose-50 p-4 rounded-2xl text-center"><p className="text-xs text-rose-600 font-bold uppercase mb-1">Erros</p><p className="text-2xl font-bold text-rose-700">{exercises.reduce((acc, curr) => acc + curr.incorrect, 0)}</p></div>
+                <div className="bg-emerald-50 p-4 rounded-2xl text-center">
+                  <p className="text-xs text-emerald-600 font-bold uppercase mb-1">Acertos</p>
+                  <p className="text-2xl font-bold text-emerald-700">{exercises.reduce((acc, curr) => acc + curr.correct, 0)}</p>
+                </div>
+                <div className="bg-rose-50 p-4 rounded-2xl text-center">
+                  <p className="text-xs text-rose-600 font-bold uppercase mb-1">Erros</p>
+                  <p className="text-2xl font-bold text-rose-700">{exercises.reduce((acc, curr) => acc + curr.incorrect, 0)}</p>
+                </div>
               </div>
             </div>
           </Card>
@@ -1248,15 +1491,38 @@ const ExercisesPage = () => {
               <div className="p-8">
                 <h2 className="text-2xl font-bold text-inherit mb-6" style={{color:'inherit'}}>Registrar Exercícios</h2>
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div><label className="block text-sm font-bold mb-2 opacity-80">Disciplina</label><select required className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.subject_id} onChange={e => setDraft({...draft, subject_id: parseInt(e.target.value)})}><option value="">Selecione...</option>{subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-                  {draft.subject_id > 0 && <div><label className="block text-sm font-bold mb-2 opacity-80">Assunto (Opcional)</label><select className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.topic_id} onChange={e => setDraft({...draft, topic_id: parseInt(e.target.value)})}><option value="">Selecione...</option>{topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>}
-                  <div><label className="block text-sm font-bold mb-2 opacity-80">Observações (Opcional)</label><input type="text" className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="Ex: Prova da banca X" value={draft.notes} onChange={e => setDraft({...draft, notes: e.target.value})} /></div>
+                  <div>
+                    <label className="block text-sm font-bold mb-2 opacity-80">Disciplina</label>
+                    <select required className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.subject_id} onChange={e => setDraft({...draft, subject_id: parseInt(e.target.value) || 0})}>
+                      <option value="">Selecione...</option>
+                      {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  {draft.subject_id > 0 && (
+                    <div>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Assunto (Opcional)</label>
+                      <select className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.topic_id} onChange={e => setDraft({...draft, topic_id: parseInt(e.target.value) || 0})}>
+                        <option value="">Selecione...</option>
+                        {topics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-bold mb-2 opacity-80">Observações (Opcional)</label>
+                    <input type="text" className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="Ex: Prova da banca X" value={draft.notes} onChange={e => setDraft({...draft, notes: e.target.value})} />
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-bold mb-2 opacity-80">Total de Questões</label><input required type="number" className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.total} onChange={e => setDraft({...draft, total: parseInt(e.target.value)})} /></div>
-                    <div><label className="block text-sm font-bold mb-2 opacity-80">Acertos</label><input required type="number" className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.correct} onChange={e => setDraft({...draft, correct: parseInt(e.target.value)})} /></div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Total de Questões</label>
+                      <input required type="number" min="1" className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.total || ''} onChange={e => setDraft({...draft, total: parseInt(e.target.value) || 0})} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Acertos</label>
+                      <input required type="number" min="0" className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.correct !== undefined ? draft.correct : ''} onChange={e => setDraft({...draft, correct: parseInt(e.target.value) || 0})} />
+                    </div>
                   </div>
                   <div className="flex gap-4 pt-4">
-                    <button type="button" onClick={() => setIsAdding(false)} className="flex-1 px-6 py-3 rounded-xl font-bold transition-all" style={{color:'var(--text-muted,#64748b)'}}>Cancelar</button>
+                    <button type="button" onClick={() => { setIsAdding(false); clearDraft(); }} className="flex-1 px-6 py-3 rounded-xl font-bold transition-all" style={{color:'var(--text-muted,#64748b)'}}>Cancelar</button>
                     <button type="submit" className="flex-1 bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-600">Salvar</button>
                   </div>
                 </form>
@@ -1281,6 +1547,7 @@ const Planning = () => {
   }, []);
 
   const handleSaveGoal = async () => {
+    if (!draft.target_hours || draft.target_hours <= 0) return alert('Informe um número de horas válido');
     const period = new Date().toISOString().split('T')[0];
     await api.goals.create({ ...draft, period });
     api.goals.list().then(setGoals);
@@ -1369,10 +1636,10 @@ const Planning = () => {
         {[
           { label: 'Sequência Atual', value: `🔥 ${streak} ${streak === 1 ? 'dia' : 'dias'}`, sub: 'dias consecutivos' },
           { label: 'Dias Estudados', value: `${studiedDays} / ${daysInMonth}`, sub: `${Math.round((studiedDays/daysInMonth)*100)}% de consistência` },
-          { label: 'Horas no Mês', value: `${Math.floor((totalMinutes as number)/60)}h ${(totalMinutes as number)%60}m`, sub: `Meta: ${goals.find(g=>g.type==='monthly')?.target_hours || 0}h` },
+          { label: 'Horas no Mês', value: `${Math.floor(totalMinutes/60)}h ${totalMinutes%60}m`, sub: `Meta: ${goals.find(g=>g.type==='monthly')?.target_hours || 0}h` },
         ].map((s, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-            className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            className="rounded-2xl border border-slate-200 p-5 shadow-sm" style={{background:'var(--surface,#fff)'}}>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{s.label}</p>
             <p className="text-2xl font-black text-inherit" style={{color:'inherit'}}>{s.value}</p>
             <p className="text-xs font-semibold mt-1" style={{ color: config.accentColor }}>{s.sub}</p>
@@ -1450,7 +1717,7 @@ const Planning = () => {
             <div className="p-5 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Tipo de Meta</label>
-                <select className="w-full px-3 py-2.5 rounded-xl border text-sm font-medium focus:outline-none transition-colors" style={{background: 'inherit', borderColor: 'var(--border, #e2e8f0)', color: 'inherit'}} value={draft.type} onChange={e => setDraft({...draft, type: e.target.value as any})}>
+                <select className="w-full px-3 py-2.5 rounded-xl border text-sm font-medium focus:outline-none transition-colors" style={{background: 'inherit', borderColor: 'var(--border, #e2e8f0)', color: 'inherit'}} value={draft.type} onChange={e => setDraft({...draft, type: e.target.value as Goal['type']})}>
                   <option value="daily">Diária</option>
                   <option value="weekly">Semanal</option>
                   <option value="monthly">Mensal</option>
@@ -1458,7 +1725,15 @@ const Planning = () => {
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Horas Alvo</label>
-                <input type="number" className="w-full px-3 py-2.5 rounded-xl border text-sm font-medium focus:outline-none transition-colors" style={{background: 'inherit', borderColor: 'var(--border, #e2e8f0)', color: 'inherit'}} value={draft.target_hours} onChange={e => setDraft({...draft, target_hours: parseFloat(e.target.value)})} />
+                <input
+                  type="number"
+                  min="0.5"
+                  step="0.5"
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm font-medium focus:outline-none transition-colors"
+                  style={{background: 'inherit', borderColor: 'var(--border, #e2e8f0)', color: 'inherit'}}
+                  value={draft.target_hours || ''}
+                  onChange={e => setDraft({...draft, target_hours: parseFloat(e.target.value) || 0})}
+                />
               </div>
               <button onClick={handleSaveGoal} className="w-full py-3 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90" style={{ backgroundColor: config.accentColor }}>
                 Salvar Meta
@@ -1688,7 +1963,7 @@ const Reports = () => {
 
       <div className="flex gap-1 p-1 rounded-2xl w-fit" style={{background:'var(--border2,#f1f5f9)'}}>
         {([{ id: 'evolution', label: 'Evolução' }, { id: 'subjects', label: 'Disciplinas' }, { id: 'distribution', label: 'Distribuição' }] as const).map(tab => (
-          <button key={tab.id} onClick={() => setActiveTabLocal(tab.id)} className={cn("px-6 py-2.5 rounded-xl font-bold text-sm transition-all", activeTab === tab.id ? "shadow-sm" : "opacity-60 hover:opacity-90")}>
+          <button key={tab.id} onClick={() => setActiveTabLocal(tab.id)} className={cn("px-6 py-2.5 rounded-xl font-bold text-sm transition-all", activeTab === tab.id ? "shadow-sm" : "opacity-60 hover:opacity-90")} style={activeTab === tab.id ? {background:'var(--surface,#fff)',color:'inherit'} : {}}>
             {tab.label}
           </button>
         ))}
@@ -1898,9 +2173,6 @@ const ACCENT_COLORS = [
   { label: 'Âmbar', value: '#d97706' },
 ];
 
-// ✅ FIX Bug de digitação: input NÃO controlado (uncontrolled)
-// Usar value+onChange dentro do AppContext causa re-render a cada tecla → lag
-// Com defaultValue + ref, o DOM gerencia o valor nativamente, zero re-render durante digitação
 const NameInput = React.memo(({ defaultValue, inputRef, accentColor }: {
   defaultValue: string;
   inputRef: React.RefObject<HTMLInputElement>;
@@ -1920,7 +2192,6 @@ const NameInput = React.memo(({ defaultValue, inputRef, accentColor }: {
 const SettingsPage = () => {
   const { config, setConfig } = useAppConfig();
   const [local, setLocal] = useState<AppConfig>(config);
-  // ✅ Ref em vez de state — lê o valor só na hora de salvar, sem re-render a cada tecla
   const nameInputRef = React.useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -1933,7 +2204,6 @@ const SettingsPage = () => {
   }, []);
 
   const handleSave = async () => {
-    // Lê o valor diretamente do DOM — sem state intermediário
     const nameValue = nameInputRef.current?.value.trim() || config.userName;
     const final = { ...local, userName: nameValue };
     setLocal(final);
@@ -1958,9 +2228,9 @@ const SettingsPage = () => {
 
   const handleExportCSV = () => {
     const headers = ['Data','Disciplina','Duração (min)','Tipo','Notas'];
-    const rows = sessions.map(s => [s.date, s.subject_name || '', s.duration, s.type, s.notes || '']);
+    const rows = sessions.map(s => [s.date, s.subject_name || '', s.duration, s.type, s.notes || ''].map(v => `"${String(v).replace(/"/g, '""')}"`));
     const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -2002,7 +2272,6 @@ const SettingsPage = () => {
           <div className="space-y-5">
             <div>
               <label className="block text-sm font-bold mb-2 opacity-80">Seu nome</label>
-              {/* ✅ FIX: input não controlado com ref — zero re-render durante digitação */}
               <NameInput defaultValue={config.userName} inputRef={nameInputRef} accentColor={local.accentColor} />
               <p className="text-xs text-slate-400 mt-1">Clique em "Salvar alterações" para confirmar o nome.</p>
             </div>
@@ -2184,8 +2453,14 @@ const SessionHistory = () => {
       </div>
 
       <div className="flex flex-wrap gap-3 p-5 rounded-2xl border" style={{background: th.surface, borderColor: th.border}}>
-        <input type="text" placeholder="🔍 Buscar por disciplina ou notas..." value={search} onChange={e => setSearch(e.target.value)}
-          className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl border text-sm" style={selectStyle} />
+        <input
+          type="text"
+          placeholder="🔍 Buscar por disciplina ou notas..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl border text-sm"
+          style={selectStyle}
+        />
         <select className="px-4 py-2.5 rounded-xl border text-sm font-bold" style={selectStyle} value={filters.period} onChange={e => setFilters({...filters, period: e.target.value})}>
           <option value="7d">Últimos 7 dias</option>
           <option value="30d">Últimos 30 dias</option>
@@ -2198,10 +2473,10 @@ const SessionHistory = () => {
         </select>
         <select className="px-4 py-2.5 rounded-xl border text-sm font-bold" style={selectStyle} value={filters.type} onChange={e => setFilters({...filters, type: e.target.value})}>
           <option value="all">Todos os tipos</option>
-          <option value="teoria">Teoria</option>
-          <option value="exercicios">Exercícios</option>
-          <option value="revisao">Revisão</option>
-          <option value="simulado">Simulado</option>
+          <option value="theory">Teoria</option>
+          <option value="exercises">Exercícios</option>
+          <option value="revision">Revisão</option>
+          <option value="simulated">Simulado</option>
         </select>
       </div>
 
@@ -2212,11 +2487,18 @@ const SessionHistory = () => {
             <p className="font-bold opacity-40">Nenhuma sessão encontrada</p>
           </div>
         ) : filtered.map((session, i) => (
-          <motion.div key={session.id} initial={{opacity:0, y:8}} animate={{opacity:1, y:0}} transition={{delay: Math.min(i * 0.02, 0.3)}}
+          <motion.div
+            key={session.id}
+            initial={{opacity:0, y:8}}
+            animate={{opacity:1, y:0}}
+            transition={{delay: Math.min(i * 0.02, 0.3)}}
             className="flex items-center gap-4 p-4 rounded-2xl border transition-all"
-            style={{background: th.surface, borderColor: th.border}}>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0"
-              style={{backgroundColor: session.subject_color || config.accentColor}}>
+            style={{background: th.surface, borderColor: th.border}}
+          >
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+              style={{backgroundColor: session.subject_color || config.accentColor}}
+            >
               {(session.subject_name || '?').charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
@@ -2261,7 +2543,6 @@ export default function App() {
     api.preferences.get().then(prefs => {
       if (prefs.app_config) {
         const saved = prefs.app_config as AppConfig;
-        // ✅ FIX: Se config salva tem nome padrão vazio/Estudante, tenta recuperar do localStorage
         const storedName = localStorage.getItem('planoaprovado_user_name');
         if (storedName && (!saved.userName || saved.userName === 'Estudante')) {
           saved.userName = storedName;
@@ -2269,7 +2550,6 @@ export default function App() {
         setConfigState(saved);
         applyTheme(saved);
       } else {
-        // ✅ FIX: Primeiro acesso — carrega nome do localStorage (definido pelo WelcomeScreen)
         const storedName = localStorage.getItem('planoaprovado_user_name');
         if (storedName) {
           const initial = { ...defaultConfig, userName: storedName };
@@ -2292,7 +2572,6 @@ export default function App() {
     return (
       <WelcomeScreen
         onConfirm={(name, id) => {
-          // ✅ FIX: Salva nome no localStorage E sincroniza imediatamente com o AppConfig
           localStorage.setItem('planoaprovado_user_name', name);
           localStorage.setItem('planoaprovado_user_id', id);
           const updated = { ...defaultConfig, userName: name };
@@ -2405,7 +2684,7 @@ export default function App() {
     <AppContext.Provider value={{ config, setConfig, refreshBadges, navigateTo: setActiveTab }}>
       <div className="min-h-screen flex font-sans" style={{ background: appBg, color: appColor }}>
 
-        {/* ── DESKTOP SIDEBAR (oculta em mobile) ── */}
+        {/* ── DESKTOP SIDEBAR ── */}
         <aside className="hidden lg:flex w-64 xl:w-72 border-r p-5 flex-col gap-6 sticky top-0 h-screen overflow-y-auto flex-shrink-0"
           style={{ background: sidebarBg, borderColor: sidebarBorder }}>
           <SidebarContent />
@@ -2415,13 +2694,11 @@ export default function App() {
         <AnimatePresence>
           {sidebarOpen && (
             <>
-              {/* Backdrop */}
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="fixed inset-0 bg-black/60 z-40 lg:hidden"
                 onClick={() => setSidebarOpen(false)}
               />
-              {/* Drawer */}
               <motion.aside
                 initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 40 }}
@@ -2485,7 +2762,6 @@ export default function App() {
             <button onClick={() => setSidebarOpen(true)}
               className="p-2 rounded-xl transition-colors"
               style={{ color: appColor }}>
-              {/* Hamburger */}
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <line x1="3" y1="6" x2="21" y2="6"/>
                 <line x1="3" y1="12" x2="21" y2="12"/>
@@ -2497,7 +2773,6 @@ export default function App() {
               Plano<span style={{ color: config.accentColor }}>Aprovado</span>
             </h1>
 
-            {/* Badge de revisões no mobile */}
             <div className="relative">
               <button onClick={() => handleNavClick('reviews')}
                 className="p-2 rounded-xl transition-colors"
@@ -2535,7 +2810,7 @@ export default function App() {
                 style={{ color: activeTab === item.tab ? config.accentColor : (config.theme === 'dark' ? '#64748b' : '#94a3b8') }}>
                 <item.icon size={20} />
                 <span className="text-[10px] font-bold">{item.label}</span>
-                {item.badge && item.badge > 0 && (
+                {item.badge !== undefined && item.badge > 0 && (
                   <span className="absolute -top-0.5 right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center text-white bg-red-500">
                     {item.badge > 9 ? '9+' : item.badge}
                   </span>
