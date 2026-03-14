@@ -124,7 +124,6 @@ for (const table of tables) {
 }
 
 // Recreate tables with correct UNIQUE constraints that include user_id
-// (safe: uses INSERT OR IGNORE to preserve existing data)
 try {
   db.exec(`
     CREATE TABLE IF NOT EXISTS drafts_v2 (
@@ -442,12 +441,18 @@ async function startServer() {
     });
   });
 
-  // Vite / static
+  // ── Vite / Static ────────────────────────────────────────────
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static('dist'));
+    // Serve arquivos estáticos do build
+    app.use(express.static(path.join(__dirname, 'dist')));
+
+    // CORREÇÃO: fallback para o React Router — qualquer rota retorna o index.html
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    });
   }
 
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
