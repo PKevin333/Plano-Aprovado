@@ -8,3 +8,14 @@
     "startCommand": "npm run start"
   }
 }
+```
+
+E também crie um arquivo `.nvmrc` no repositório:
+
+**3.** No GitHub clique em **Add file → Create new file**
+
+**4.** Nome do arquivo: `.nvmrc`
+
+**5.** Conteúdo:
+```
+22
