@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,9 +12,14 @@ const __dirname = path.dirname(__filename);
 // ── Banco de dados ───────────────────────────────────────────
 // Em produção (Railway), usa o volume persistente montado em /data
 // Em desenvolvimento, usa o arquivo local
-const DB_PATH = process.env.NODE_ENV === 'production'
-  ? '/data/academiaflow.db'
-  : path.join(__dirname, 'academiaflow.db');
+const DB_DIR = process.env.NODE_ENV === 'production' ? '/data' : __dirname;
+const DB_PATH = path.join(DB_DIR, 'academiaflow.db');
+
+// Cria o diretório automaticamente se não existir
+if (!fs.existsSync(DB_DIR)) {
+  fs.mkdirSync(DB_DIR, { recursive: true });
+  console.log('Diretório do banco criado: ' + DB_DIR);
+}
 
 const db = new Database(DB_PATH);
 
