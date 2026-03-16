@@ -72,6 +72,7 @@ interface AppConfig {
   accentColor: string;
   userName: string;
   dailyGoalHours: number;
+  avatarUrl?: string;
 }
 
 const defaultConfig: AppConfig = {
