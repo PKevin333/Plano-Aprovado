@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import fs from 'fs';
+import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -201,6 +202,44 @@ async function startServer() {
   // ── Middlewares ───────────────────────────────────────────
   app.use(cors());
   app.use(express.json());
+
+  // ── Upload de Foto de Perfil ─────────────────────────────────
+  const UPLOADS_DIR = process.env.NODE_ENV === 'production'
+    ? '/data/uploads'
+    : path.join(__dirname, 'uploads');
+  if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+  const storage = multer.diskStorage({
+    destination: UPLOADS_DIR,
+    filename: (req, file, cb) => {
+      const uid = getUserId(req);
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `avatar-${uid}-${Date.now()}${ext}`);
+    },
+  });
+
+  const upload = multer({
+    storage,
+    limits: { fileSize: 2 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      cb(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype));
+    },
+  });
+
+  app.post('/api/perfil/foto', upload.single('foto'), (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+      const uid = getUserId(req);
+      const url = `/uploads/${req.file.filename}`;
+      db.prepare('INSERT OR REPLACE INTO user_preferences (user_id,key,value) VALUES (?,?,?)')
+        .run(uid, 'avatar_url', JSON.stringify(url));
+      res.json({ url });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.use('/uploads', express.static(UPLOADS_DIR));
 
   // ── Objectives ───────────────────────────────────────────
   app.get('/api/objectives', (req, res) => {
