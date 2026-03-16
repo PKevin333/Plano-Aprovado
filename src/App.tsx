@@ -2269,10 +2269,9 @@ const SettingsPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 
-        <Section title="Perfil" icon={User}>
-          <div className="space-y-5">
-            <div>
-              <label className="block text-sm font-bold mb-2 opacity-80">Seu nome</label>
+        <div style={{ borderTop: `1px solid ${sidebarBorder}`, paddingTop: '16px' }}>
+          <div className="p-3 rounded-2xl" style={{ background: config.theme === 'dark' ? '#0f172a' : '#f8fafc' }}>
+            <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: config.theme === 'dark' ? '#475569' : '#94a3b8' }}>Meta do Dia</p>
               <NameInput defaultValue={config.userName} inputRef={nameInputRef} accentColor={local.accentColor} />
               <p className="text-xs text-slate-400 mt-1">Clique em "Salvar alterações" para confirmar o nome.</p>
             </div>
