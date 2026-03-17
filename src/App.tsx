@@ -271,8 +271,8 @@ const Dashboard = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>OlÃ¡, {config.userName || 'Estudante'}! ðŸ‘‹</h1>
-          <p style={{color: 'inherit', opacity: 0.6}}>Aqui estÃ¡ o resumo do seu progresso hoje.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Olá, {config.userName || 'Estudante'}! ðŸ‘‹</h1>
+          <p style={{color: 'inherit', opacity: 0.6}}>Aqui está o resumo do seu progresso hoje.</p>
         </div>
         <div className="flex gap-3">
           <button className="bg-white text-slate-700 px-4 py-2 rounded-xl border border-slate-200 font-medium hover:bg-slate-50 transition-colors flex items-center gap-2">
@@ -284,13 +284,13 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatCard label="Horas Hoje" value={formatDuration(stats.today_duration)} icon={Clock} color="bg-emerald-500" trend="+12% que ontem" />
-        <StatCard label="Meta DiÃ¡ria" value={`${stats.daily_goal}h`} icon={Target} color="bg-indigo-500" />
-        <StatCard label="RevisÃµes Pendentes" value={stats.pending_reviews_count} icon={RefreshCcw} color="bg-orange-500" />
-        <StatCard label="ConsistÃªncia" value={`${consistencyPct}%`} icon={TrendingUp} color="bg-rose-500" />
+        <StatCard label="Meta Diária" value={`${stats.daily_goal}h`} icon={Target} color="bg-indigo-500" />
+        <StatCard label="Revisões Pendentes" value={stats.pending_reviews_count} icon={RefreshCcw} color="bg-orange-500" />
+        <StatCard label="Consistência" value={`${consistencyPct}%`} icon={TrendingUp} color="bg-rose-500" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 sm:gap-6 lg:gap-8">
-        <Card className="lg:col-span-2 xl:col-span-2" title="Progresso da Meta DiÃ¡ria" subtitle="Acompanhamento em tempo real">
+        <Card className="lg:col-span-2 xl:col-span-2" title="Progresso da Meta Diária" subtitle="Acompanhamento em tempo real">
           <div className="space-y-6">
             <div className="flex items-end justify-between">
               <div>
@@ -332,7 +332,7 @@ const Dashboard = () => {
                 <div className="w-2 h-10 rounded-full" style={{ backgroundColor: session.subject_color || '#10b981' }} />
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-inherit truncate" style={{color:'inherit'}}>{session.subject_name}</h4>
-                  <p className="text-xs opacity-60">{session.type} â€¢ {Math.floor(session.duration / 60)}h {session.duration % 60}m</p>
+                  <p className="text-xs opacity-60">{session.type} • {Math.floor(session.duration / 60)}h {session.duration % 60}m</p>
                 </div>
                 <ChevronRight size={16} className="text-slate-300 group-hover:text-slate-500 transition-colors" />
               </div>
@@ -349,10 +349,10 @@ const Dashboard = () => {
   );
 };
 
-// âœ… FIX: DifficultyStars â€” componente dedicado para exibir/editar dificuldade
+// FIX: DifficultyStars â€” componente dedicado para exibir/editar dificuldade
 // Evita o bug de parseInt em onChange do range que retornava NaN ou string
 const DifficultyStars = ({ value, onChange, readonly = false }: { value: number; onChange?: (v: number) => void; readonly?: boolean }) => {
-  // Garante que value Ã© sempre nÃºmero inteiro entre 1 e 5
+  // Garante que value é sempre número inteiro entre 1 e 5
   const safeValue = Math.max(1, Math.min(5, Math.round(Number(value) || 1)));
   return (
     <div className="flex gap-1 items-center">
@@ -403,7 +403,7 @@ const Subjects = () => {
   const handleAdd = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!draft.name.trim()) return;
-    // âœ… FIX: Garante que difficulty Ã© nÃºmero inteiro vÃ¡lido antes de salvar
+    // FIX: Garante que difficulty é número inteiro válido antes de salvar
     const safeData = {
       ...draft,
       difficulty: Math.max(1, Math.min(5, Math.round(Number(draft.difficulty) || 3)))
@@ -415,7 +415,7 @@ const Subjects = () => {
   };
 
   const handleUpdate = async (id: number, data: Partial<Subject>) => {
-    // âœ… FIX: Se vier difficulty, garantir que Ã© nÃºmero inteiro
+    // FIX: Se vier difficulty, garantir que é número inteiro
     const safeData = { ...data };
     if (safeData.difficulty !== undefined) {
       safeData.difficulty = Math.max(1, Math.min(5, Math.round(Number(safeData.difficulty) || 3)));
@@ -441,7 +441,7 @@ const Subjects = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Disciplinas</h1>
-          <p className="text-slate-500">Gerencie as matÃ©rias do seu plano de estudos.</p>
+          <p className="text-slate-500">Gerencie as matérias do seu plano de estudos.</p>
         </div>
         <button onClick={() => setIsAdding(true)} className="text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2" style={{backgroundColor:'var(--accent,#2563eb)'}}>
           <Plus size={20} />
@@ -474,7 +474,7 @@ const Subjects = () => {
                     onChange={e => handleUpdate(subject.id, { priority: e.target.value as Subject['priority'] })}
                   >
                     <option value="low">Baixa</option>
-                    <option value="medium">MÃ©dia</option>
+                    <option value="medium">Média</option>
                     <option value="high">Alta</option>
                   </select>
                   <select
@@ -487,7 +487,7 @@ const Subjects = () => {
                     {objectives.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                   </select>
                 </div>
-                {/* âœ… FIX: Usa DifficultyStars em vez de range para ediÃ§Ã£o inline */}
+                {/* FIX: Usa DifficultyStars em vez de range para edição inline */}
                 <div>
                   <label className="block text-xs font-bold mb-2 opacity-70">Dificuldade</label>
                   <DifficultyStars
@@ -512,12 +512,12 @@ const Subjects = () => {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Prioridade</span>
                     <span className={cn("px-2 py-0.5 rounded-md text-[10px] font-bold uppercase", subject.priority === 'high' ? "bg-rose-100 text-rose-600" : subject.priority === 'medium' ? "bg-orange-100 text-orange-600" : "bg-emerald-100 text-emerald-600")}>
-                      {subject.priority === 'high' ? 'Alta' : subject.priority === 'medium' ? 'MÃ©dia' : 'Baixa'}
+                      {subject.priority === 'high' ? 'Alta' : subject.priority === 'medium' ? 'Média' : 'Baixa'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Dificuldade</span>
-                    {/* âœ… FIX: Usa DifficultyStars readonly para exibiÃ§Ã£o */}
+                    {/* FIX: Usa DifficultyStars readonly para exibição */}
                     <DifficultyStars value={subject.difficulty} readonly />
                   </div>
                 </div>
@@ -535,7 +535,7 @@ const Subjects = () => {
                 <h2 className="text-2xl font-bold text-inherit mb-6" style={{color:'inherit'}}>Nova Disciplina</h2>
                 <form onSubmit={handleAdd} className="space-y-6">
                   <div>
-                    <label className="block text-sm font-bold mb-2 opacity-80">Nome da MatÃ©ria</label>
+                    <label className="block text-sm font-bold mb-2 opacity-80">Nome da Matéria</label>
                     <SubjectAutocomplete
                       value={draft.name}
                       onChange={name => setDraft({...draft, name})}
@@ -544,7 +544,7 @@ const Subjects = () => {
                         name: s.name,
                         color: s.color,
                         priority: s.priority,
-                        // âœ… FIX: Garante que difficulty do autocomplete Ã© nÃºmero
+                        // FIX: Garante que difficulty do autocomplete é número
                         difficulty: Math.max(1, Math.min(5, Math.round(Number(s.difficulty) || 3))),
                         objective_id: s.objective_id
                       })}
@@ -564,7 +564,7 @@ const Subjects = () => {
                         onChange={e => setDraft({...draft, priority: e.target.value as Subject['priority']})}
                       >
                         <option value="low">Baixa</option>
-                        <option value="medium">MÃ©dia</option>
+                        <option value="medium">Média</option>
                         <option value="high">Alta</option>
                       </select>
                     </div>
@@ -581,7 +581,7 @@ const Subjects = () => {
                       </select>
                     </div>
                   </div>
-                  {/* âœ… FIX: Dificuldade agora usa DifficultyStars â€” sem bug de NaN/string */}
+                  {/* FIX: Dificuldade agora usa DifficultyStars â€” sem bug de NaN/string */}
                   <div>
                     <label className="block text-sm font-bold mb-3 opacity-80">
                       Dificuldade
@@ -615,7 +615,7 @@ const Subjects = () => {
                 <div className="text-center space-y-2">
                   <h2 className="text-xl font-black" style={{color:'inherit'}}>Excluir disciplina?</h2>
                   <p className="text-sm" style={{color:'var(--text-muted,#64748b)'}}>
-                    "<strong>{deleteModal.name}</strong>" e <strong>todas as sessÃµes, exercÃ­cios e revisÃµes</strong> vinculadas serÃ£o apagados permanentemente.
+                    "<strong>{deleteModal.name}</strong>" e <strong>todas as sessões, exercícios e revisões</strong> vinculadas serÃ£o apagados permanentemente.
                   </p>
                 </div>
                 <div className="flex gap-3 pt-2">
@@ -680,7 +680,7 @@ const Topics = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Assuntos</h1>
-          <p className="text-slate-500">Cadastre os tÃ³picos especÃ­ficos de cada matÃ©ria.</p>
+          <p className="text-slate-500">Cadastre os tópicos específicos de cada matéria.</p>
         </div>
         <button onClick={() => setIsAdding(true)} className="text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2" style={{backgroundColor:'var(--accent,#2563eb)'}}>
           <Plus size={20} />
@@ -719,7 +719,7 @@ const Topics = () => {
                     <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-md text-white shadow-sm" style={{ backgroundColor: subject?.color || '#10b981' }}>{topic.subject_name}</span>
                   </div>
                   <h3 className="font-bold text-inherit text-lg" style={{color:'inherit'}}>{topic.name}</h3>
-                  <p className="text-sm text-slate-500 mt-2 line-clamp-3">{topic.description || 'Sem descriÃ§Ã£o'}</p>
+                  <p className="text-sm text-slate-500 mt-2 line-clamp-3">{topic.description || 'Sem descrição'}</p>
                 </>
               )}
             </Card>
@@ -743,10 +743,10 @@ const Topics = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-bold mb-2 opacity-80">Nome do Assunto</label>
-                    <input required type="text" className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="Ex: InterpretaÃ§Ã£o de Texto" value={draft.name} onChange={e => setDraft({...draft, name: e.target.value})} />
+                    <input required type="text" className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="Ex: Interpretação de Texto" value={draft.name} onChange={e => setDraft({...draft, name: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold mb-2 opacity-80">DescriÃ§Ã£o (Opcional)</label>
+                    <label className="block text-sm font-bold mb-2 opacity-80">Descrição (Opcional)</label>
                     <textarea className="w-full px-4 py-3 rounded-xl border h-24 resize-none" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.description} onChange={e => setDraft({...draft, description: e.target.value})} />
                   </div>
                   <div className="flex gap-4 pt-4">
@@ -794,7 +794,7 @@ const Objectives = () => {
         {objectives.map(obj => (
           <Card key={obj.id}>
             <h3 className="font-bold text-inherit text-lg" style={{color:'inherit'}}>{obj.name}</h3>
-            <p className="text-sm text-slate-500 mt-2">{obj.description || 'Sem descriÃ§Ã£o'}</p>
+            <p className="text-sm text-slate-500 mt-2">{obj.description || 'Sem descrição'}</p>
           </Card>
         ))}
       </div>
@@ -810,7 +810,7 @@ const Objectives = () => {
                     <input required type="text" className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="Ex: Concurso Receita Federal" value={newObjective.name} onChange={e => setNewObjective({...newObjective, name: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold mb-2 opacity-80">DescriÃ§Ã£o</label>
+                    <label className="block text-sm font-bold mb-2 opacity-80">Descrição</label>
                     <textarea className="w-full px-4 py-3 rounded-xl border h-24 resize-none" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={newObjective.description} onChange={e => setNewObjective({...newObjective, description: e.target.value})} />
                   </div>
                   <div className="flex gap-4 pt-4">
@@ -884,7 +884,7 @@ const StudyTimer = () => {
   };
 
   const handleCancelTimer = () => {
-    if (confirm('Deseja realmente cancelar o cronÃ´metro?')) {
+    if (confirm('Deseja realmente cancelar o cronômetro?')) {
       setSeconds(0); setIsActive(false); setIsPaused(false);
       localStorage.removeItem('academiaflow_timer');
     }
@@ -899,7 +899,7 @@ const StudyTimer = () => {
       finalDuration = (endH * 60 + endM) - (startH * 60 + startM);
       if (finalDuration < 0) finalDuration += 24 * 60;
     }
-    if (finalDuration <= 0) return alert('A duraÃ§Ã£o deve ser maior que zero');
+    if (finalDuration <= 0) return alert('A duração deve ser maior que zero');
     await api.sessions.create({
       subject_id: sessionData.subject_id,
       topic_id: sessionData.topic_id || undefined,
@@ -912,7 +912,7 @@ const StudyTimer = () => {
     const globalEnabled = prefs.reviews_global_enabled !== false;
     const disabledSubjects: number[] = prefs.reviews_disabled_subjects || [];
     const subjectEnabled = !disabledSubjects.includes(sessionData.subject_id);
-    let msg = 'SessÃ£o salva com sucesso!';
+    let msg = 'Sessão salva com sucesso!';
     if (globalEnabled && subjectEnabled) {
       const now = new Date();
       for (const r of [
@@ -924,9 +924,9 @@ const StudyTimer = () => {
         scheduledDate.setDate(now.getDate() + r.days);
         await api.reviews.create({ subject_id: sessionData.subject_id, scheduled_date: scheduledDate.toISOString(), type: r.type });
       }
-      msg += ' RevisÃµes agendadas.';
+      msg += ' Revisões agendadas.';
     } else {
-      msg += ' RevisÃµes nÃ£o agendadas (desativadas nas configuraÃ§Ãµes).';
+      msg += ' Revisões não agendadas (desativadas nas configurações).';
     }
     setSeconds(0); setIsActive(false); setIsPaused(false);
     setShowFinishModal(false); setShowManualModal(false);
@@ -942,7 +942,7 @@ const StudyTimer = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Foco Total</h1>
-          <p className="text-slate-500">Gerencie seu tempo de estudo com precisÃ£o.</p>
+          <p className="text-slate-500">Gerencie seu tempo de estudo com precisão.</p>
         </div>
         <button onClick={() => setShowManualModal(true)} className="bg-white text-inherit border border-slate-200 px-6 py-3 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2" style={{color:'inherit'}}>
           <Plus size={20} />
@@ -1013,8 +1013,8 @@ const StudyTimer = () => {
             <div className="grid grid-cols-1 gap-2">
               {[
                 { id: 'theory', label: 'Teoria', icon: BookOpen, color: 'indigo' },
-                { id: 'revision', label: 'RevisÃ£o', icon: RefreshCcw, color: 'emerald' },
-                { id: 'exercises', label: 'ExercÃ­cios', icon: Target, color: 'amber' },
+                { id: 'revision', label: 'Revisão', icon: RefreshCcw, color: 'emerald' },
+                { id: 'exercises', label: 'Exercícios', icon: Target, color: 'amber' },
                 { id: 'simulated', label: 'Simulado', icon: BarChart3, color: 'rose' }
               ].map(type => (
                 <button
@@ -1042,11 +1042,11 @@ const StudyTimer = () => {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl" style={{background:'var(--surface,#fff)',color:'inherit'}}>
               <div className="p-8">
-                <h2 className="text-2xl font-bold text-inherit mb-6" style={{color:'inherit'}}>Confirmar SessÃ£o de Estudo</h2>
+                <h2 className="text-2xl font-bold text-inherit mb-6" style={{color:'inherit'}}>Confirmar Sessão de Estudo</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-bold mb-2 opacity-80">DuraÃ§Ã£o (minutos)</label>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Duração (minutos)</label>
                       <input type="number" min="1" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.duration} onChange={e => setDraft({...draft, duration: parseInt(e.target.value) || 0})} />
                     </div>
                     <div>
@@ -1069,20 +1069,20 @@ const StudyTimer = () => {
                       <label className="block text-sm font-bold mb-2 opacity-80">Tipo</label>
                       <select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.type} onChange={e => setDraft({...draft, type: e.target.value as Session['type']})}>
                         <option value="theory">Teoria</option>
-                        <option value="revision">RevisÃ£o</option>
-                        <option value="exercises">ExercÃ­cios</option>
+                        <option value="revision">Revisão</option>
+                        <option value="exercises">Exercícios</option>
                         <option value="simulated">Simulado</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-bold mb-2 opacity-80">ObservaÃ§Ãµes</label>
-                      <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 h-32 resize-none" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="O que vocÃª aprendeu?" value={draft.notes} onChange={e => setDraft({...draft, notes: e.target.value})} />
+                      <label className="block text-sm font-bold mb-2 opacity-80">Observações</label>
+                      <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 h-32 resize-none" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="O que você aprendeu?" value={draft.notes} onChange={e => setDraft({...draft, notes: e.target.value})} />
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-4 mt-8">
                   <button onClick={() => setShowFinishModal(false)} className="flex-1 py-4 rounded-xl font-bold text-slate-500 hover:bg-slate-100">Voltar</button>
-                  <button onClick={() => handleSaveSession(draft)} className="flex-1 bg-emerald-500 text-white py-4 rounded-xl font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-600">Salvar SessÃ£o</button>
+                  <button onClick={() => handleSaveSession(draft)} className="flex-1 bg-emerald-500 text-white py-4 rounded-xl font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-600">Salvar Sessão</button>
                 </div>
               </div>
             </motion.div>
@@ -1105,19 +1105,19 @@ const StudyTimer = () => {
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-slate-700">Modo de Registro</label>
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => setDraft({...draft, manualMode: 'duration'})} className={cn("flex-1 py-2 rounded-lg text-sm font-bold border-2 transition-all", draft.manualMode === 'duration' ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400")}>DuraÃ§Ã£o</button>
+                        <button type="button" onClick={() => setDraft({...draft, manualMode: 'duration'})} className={cn("flex-1 py-2 rounded-lg text-sm font-bold border-2 transition-all", draft.manualMode === 'duration' ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400")}>Duração</button>
                         <button type="button" onClick={() => setDraft({...draft, manualMode: 'range'})} className={cn("flex-1 py-2 rounded-lg text-sm font-bold border-2 transition-all", draft.manualMode === 'range' ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400")}>HorÃ¡rio</button>
                       </div>
                     </div>
                     {draft.manualMode === 'duration' ? (
                       <div>
-                        <label className="block text-sm font-bold mb-2 opacity-80">DuraÃ§Ã£o (minutos)</label>
+                        <label className="block text-sm font-bold mb-2 opacity-80">Duração (minutos)</label>
                         <input type="number" min="1" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="Ex: 60" value={draft.duration || ''} onChange={e => setDraft({...draft, duration: parseInt(e.target.value) || 0})} />
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="block text-xs font-bold text-slate-500 mb-1">InÃ­cio</label>
+                          <label className="block text-xs font-bold text-slate-500 mb-1">Início</label>
                           <input type="time" className="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.startTime} onChange={e => setDraft({...draft, startTime: e.target.value})} />
                         </div>
                         <div>
@@ -1146,14 +1146,14 @@ const StudyTimer = () => {
                       <label className="block text-sm font-bold mb-2 opacity-80">Tipo</label>
                       <select className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.type} onChange={e => setDraft({...draft, type: e.target.value as Session['type']})}>
                         <option value="theory">Teoria</option>
-                        <option value="revision">RevisÃ£o</option>
-                        <option value="exercises">ExercÃ­cios</option>
+                        <option value="revision">Revisão</option>
+                        <option value="exercises">Exercícios</option>
                         <option value="simulated">Simulado</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-bold mb-2 opacity-80">ObservaÃ§Ãµes</label>
-                      <textarea className="w-full px-4 py-3 rounded-xl border h-24 resize-none" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="O que vocÃª estudou?" value={draft.notes} onChange={e => setDraft({...draft, notes: e.target.value})} />
+                      <label className="block text-sm font-bold mb-2 opacity-80">Observações</label>
+                      <textarea className="w-full px-4 py-3 rounded-xl border h-24 resize-none" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="O que você estudou?" value={draft.notes} onChange={e => setDraft({...draft, notes: e.target.value})} />
                     </div>
                   </div>
                 </div>
@@ -1227,8 +1227,8 @@ const Reviews = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>RevisÃµes Programadas</h1>
-          <p className="text-slate-500">A curva do esquecimento nÃ£o tem chance contra vocÃª.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Revisões Programadas</h1>
+          <p className="text-slate-500">A curva do esquecimento não tem chance contra você.</p>
         </div>
         <button
           onClick={() => setShowSettings(!showSettings)}
@@ -1236,7 +1236,7 @@ const Reviews = () => {
             showSettings ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50")}
         >
           <Settings size={16} />
-          ConfiguraÃ§Ãµes
+          Configurações
         </button>
       </div>
 
@@ -1250,8 +1250,8 @@ const Reviews = () => {
           >
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <h3 className="font-bold" style={{color: 'inherit'}}>ConfiguraÃ§Ãµes de RevisÃ£o</h3>
-                <p className="text-sm opacity-60">Controle como as revisÃµes automÃ¡ticas funcionam</p>
+                <h3 className="font-bold" style={{color: 'inherit'}}>Configurações de Revisão</h3>
+                <p className="text-sm opacity-60">Controle como as revisões automáticas funcionam</p>
               </div>
             </div>
             <div className="p-6 space-y-6">
@@ -1261,8 +1261,8 @@ const Reviews = () => {
                     <RefreshCcw size={20} className={globalEnabled ? "text-emerald-600" : "text-slate-400"} />
                   </div>
                   <div>
-                    <p className="font-bold" style={{color: 'inherit'}}>RevisÃµes automÃ¡ticas</p>
-                    <p className="text-sm opacity-60">Ao finalizar uma sessÃ£o, agendar revisÃµes em 24h, 7d e 30d</p>
+                    <p className="font-bold" style={{color: 'inherit'}}>Revisões automáticas</p>
+                    <p className="text-sm opacity-60">Ao finalizar uma sessão, agendar revisões em 24h, 7d e 30d</p>
                   </div>
                 </div>
                 <button
@@ -1279,7 +1279,7 @@ const Reviews = () => {
 
               {globalEnabled && (
                 <div className="space-y-3">
-                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">RevisÃµes por Disciplina</p>
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Revisões por Disciplina</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {subjects.map(subject => {
                       const enabled = !disabledSubjects.includes(subject.id);
@@ -1308,7 +1308,7 @@ const Reviews = () => {
 
               {!globalEnabled && (
                 <div className="text-center py-4 text-slate-400 text-sm">
-                  RevisÃµes automÃ¡ticas desativadas. Nenhuma revisÃ£o serÃ¡ agendada ao estudar.
+                  Revisões automáticas desativadas. Nenhuma revisão será agendada ao estudar.
                 </div>
               )}
             </div>
@@ -1317,7 +1317,7 @@ const Reviews = () => {
       </AnimatePresence>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-        <Card title="PrÃ³ximas RevisÃµes" subtitle="Fique em dia com seu cronograma">
+        <Card title="Próximas Revisões" subtitle="Fique em dia com seu cronograma">
           <div className="space-y-4">
             {pendingReviews.length > 0 ? pendingReviews.map(review => (
               <div key={review.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 hover:border-slate-200 transition-all group">
@@ -1330,37 +1330,37 @@ const Reviews = () => {
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                   <button onClick={() => handleSkip(review.id)} title="Ignorar" className="p-2 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all"><X size={18} /></button>
-                  <button onClick={() => handleComplete(review.id)} title="ConcluÃ­da" className="p-2 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 transition-all"><CheckCircle2 size={20} /></button>
+                  <button onClick={() => handleComplete(review.id)} title="Concluída" className="p-2 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 transition-all"><CheckCircle2 size={20} /></button>
                 </div>
               </div>
             )) : (
               <div className="text-center py-12 text-slate-400">
                 <CheckCircle2 size={40} className="mx-auto mb-2 text-slate-200" />
-                Tudo limpo por aqui! Nenhuma revisÃ£o pendente.
+                Tudo limpo por aqui! Nenhuma revisão pendente.
               </div>
             )}
           </div>
         </Card>
 
         <div className="space-y-6">
-          <Card title="HistÃ³rico de RevisÃµes" subtitle="Suas revisÃµes concluÃ­das">
+          <Card title="Histórico de Revisões" subtitle="Suas revisões concluídas">
             <div className="space-y-3">
               {completedReviews.slice(0, 5).map(review => (
                 <div key={review.id} className="flex items-center gap-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0" style={{ backgroundColor: review.subject_color }}>{review.type}</div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-inherit truncate" style={{color:'inherit'}}>{review.subject_name}</h4>
-                    <p className="text-xs opacity-60">ConcluÃ­da em {format(new Date(review.scheduled_date), "dd/MM/yyyy")}</p>
+                    <p className="text-xs opacity-60">Concluída em {format(new Date(review.scheduled_date), "dd/MM/yyyy")}</p>
                   </div>
                   <CheckCircle2 size={18} className="text-emerald-500 flex-shrink-0" />
                 </div>
               ))}
-              {completedReviews.length === 0 && <p className="text-sm text-slate-400 text-center py-4">Nenhuma revisÃ£o concluÃ­da ainda.</p>}
+              {completedReviews.length === 0 && <p className="text-sm text-slate-400 text-center py-4">Nenhuma revisão concluída ainda.</p>}
             </div>
           </Card>
 
           {skippedReviews.length > 0 && (
-            <Card title="RevisÃµes Ignoradas" subtitle="Marcadas para pular">
+            <Card title="Revisões Ignoradas" subtitle="Marcadas para pular">
               <div className="space-y-3">
                 {skippedReviews.slice(0, 3).map(review => (
                   <div key={review.id} className="flex items-center gap-4 p-4 rounded-2xl bg-amber-50 border border-amber-100">
@@ -1396,8 +1396,8 @@ const ExercisesPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (draft.total <= 0) return alert('O total de questÃµes deve ser maior que zero');
-    if (draft.correct > draft.total) return alert('Acertos nÃ£o podem ser maiores que o total');
+    if (draft.total <= 0) return alert('O total de questões deve ser maior que zero');
+    if (draft.correct > draft.total) return alert('Acertos não podem ser maiores que o total');
     await api.exercises.create({
       ...draft,
       topic_id: draft.topic_id || undefined,
@@ -1413,7 +1413,7 @@ const ExercisesPage = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>ExercÃ­cios</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Exercícios</h1>
           <p className="text-slate-500">Monitore seu desempenho e identifique pontos de melhoria.</p>
         </div>
         <button onClick={() => setIsAdding(true)} className="bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-600 transition-all flex items-center gap-2">
@@ -1421,7 +1421,7 @@ const ExercisesPage = () => {
         </button>
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4 sm:gap-6 lg:gap-8">
-        <Card className="xl:col-span-2" title="HistÃ³rico de QuestÃµes">
+        <Card className="xl:col-span-2" title="Histórico de Questões">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
@@ -1456,7 +1456,7 @@ const ExercisesPage = () => {
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-slate-400">
                       <Target size={40} className="mx-auto mb-2 opacity-30" />
-                      <p>Nenhum exercÃ­cio registrado ainda.</p>
+                      <p>Nenhum exercício registrado ainda.</p>
                     </td>
                   </tr>
                 )}
@@ -1465,10 +1465,10 @@ const ExercisesPage = () => {
           </div>
         </Card>
         <div className="space-y-6">
-          <Card title="MÃ©tricas Gerais">
+          <Card title="Métricas Gerais">
             <div className="space-y-6">
               <div className="text-center">
-                <p className="text-sm text-slate-500 mb-1">Total de QuestÃµes</p>
+                <p className="text-sm text-slate-500 mb-1">Total de Questões</p>
                 <p className="text-4xl font-bold" style={{color:'inherit'}}>{exercises.reduce((acc, curr) => acc + curr.total, 0)}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -1490,7 +1490,7 @@ const ExercisesPage = () => {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="rounded-3xl w-full max-w-md overflow-hidden shadow-2xl" style={{background:'var(--surface,#fff)',color:'inherit'}}>
               <div className="p-8">
-                <h2 className="text-2xl font-bold text-inherit mb-6" style={{color:'inherit'}}>Registrar ExercÃ­cios</h2>
+                <h2 className="text-2xl font-bold text-inherit mb-6" style={{color:'inherit'}}>Registrar Exercícios</h2>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
                     <label className="block text-sm font-bold mb-2 opacity-80">Disciplina</label>
@@ -1509,12 +1509,12 @@ const ExercisesPage = () => {
                     </div>
                   )}
                   <div>
-                    <label className="block text-sm font-bold mb-2 opacity-80">ObservaÃ§Ãµes (Opcional)</label>
+                    <label className="block text-sm font-bold mb-2 opacity-80">Observações (Opcional)</label>
                     <input type="text" className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} placeholder="Ex: Prova da banca X" value={draft.notes} onChange={e => setDraft({...draft, notes: e.target.value})} />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold mb-2 opacity-80">Total de QuestÃµes</label>
+                      <label className="block text-sm font-bold mb-2 opacity-80">Total de Questões</label>
                       <input required type="number" min="1" className="w-full px-4 py-3 rounded-xl border" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.total || ''} onChange={e => setDraft({...draft, total: parseInt(e.target.value) || 0})} />
                     </div>
                     <div>
@@ -1548,7 +1548,7 @@ const Planning = () => {
   }, []);
 
   const handleSaveGoal = async () => {
-    if (!draft.target_hours || draft.target_hours <= 0) return alert('Informe um nÃºmero de horas vÃ¡lido');
+    if (!draft.target_hours || draft.target_hours <= 0) return alert('Informe um número de horas válido');
     const period = new Date().toISOString().split('T')[0];
     await api.goals.create({ ...draft, period });
     api.goals.list().then(setGoals);
@@ -1609,7 +1609,7 @@ const Planning = () => {
     return { ...g, studied: Math.round(studied * 10) / 10, pct: Math.round(pct) };
   }), [goals, sessions]);
 
-  const typeLabel: Record<string, string> = { daily: 'DiÃ¡ria', weekly: 'Semanal', monthly: 'Mensal' };
+  const typeLabel: Record<string, string> = { daily: 'Diária', weekly: 'Semanal', monthly: 'Mensal' };
   const badgeColors: Record<string, string> = {
     daily: 'bg-blue-50 text-blue-700',
     weekly: 'bg-emerald-50 text-emerald-700',
@@ -1619,14 +1619,14 @@ const Planning = () => {
 
   const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
-  const monthNames = ['Janeiro','Fevereiro','MarÃ§o','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Planejamento</h1>
-          <p className="text-slate-500">Defina suas metas e acompanhe sua consistÃªncia.</p>
+          <p className="text-slate-500">Defina suas metas e acompanhe sua consistência.</p>
         </div>
         <button onClick={handleSaveGoal} className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-white shadow-lg transition-all hover:opacity-90" style={{ backgroundColor: config.accentColor }}>
           <Plus size={16} /> Nova Meta
@@ -1635,9 +1635,9 @@ const Planning = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {[
-          { label: 'SequÃªncia Atual', value: `ðŸ”¥ ${streak} ${streak === 1 ? 'dia' : 'dias'}`, sub: 'dias consecutivos' },
-          { label: 'Dias Estudados', value: `${studiedDays} / ${daysInMonth}`, sub: `${Math.round((studiedDays/daysInMonth)*100)}% de consistÃªncia` },
-          { label: 'Horas no MÃªs', value: `${Math.floor(totalMinutes/60)}h ${totalMinutes%60}m`, sub: `Meta: ${goals.find(g=>g.type==='monthly')?.target_hours || 0}h` },
+          { label: 'Sequência Atual', value: `🔥 ${streak} ${streak === 1 ? 'dia' : 'dias'}`, sub: 'dias consecutivos' },
+          { label: 'Dias Estudados', value: `${studiedDays} / ${daysInMonth}`, sub: `${Math.round((studiedDays/daysInMonth)*100)}% de consistência` },
+          { label: 'Horas no Mês', value: `${Math.floor(totalMinutes/60)}h ${totalMinutes%60}m`, sub: `Meta: ${goals.find(g=>g.type==='monthly')?.target_hours || 0}h` },
         ].map((s, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
             className="rounded-2xl border border-slate-200 p-5 shadow-sm" style={{background:'var(--surface,#fff)'}}>
@@ -1653,7 +1653,7 @@ const Planning = () => {
           <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
             <div className="p-2 rounded-xl bg-slate-50"><Calendar size={16} className="text-slate-600" /></div>
             <div>
-              <p className="font-bold" style={{color: 'inherit'}}>CalendÃ¡rio de Estudos</p>
+              <p className="font-bold" style={{color: 'inherit'}}>Calendário de Estudos</p>
               <p className="text-xs text-slate-400">Visualize seus dias de estudo</p>
             </div>
           </div>
@@ -1664,7 +1664,7 @@ const Planning = () => {
               <button onClick={nextMonth} className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors text-sm font-bold">â€º</button>
             </div>
             <div className="grid grid-cols-7 gap-1 mb-2">
-              {['DOM','SEG','TER','QUA','QUI','SEX','SÃB'].map(d => (
+              {['DOM','SEG','TER','QUA','QUI','SEX','SÁB'].map(d => (
                 <div key={d} className="text-center text-[10px] font-bold text-slate-400 py-1">{d}</div>
               ))}
             </div>
@@ -1690,7 +1690,7 @@ const Planning = () => {
             <div className="flex items-center gap-4 mt-4 flex-wrap">
               {[
                 { bg: '#f1f5f9', border: true, label: 'Sem estudo' },
-                { color: config.accentColor + '30', label: '1â€“3h', textColor: '#1e40af' },
+                { color: config.accentColor + '30', label: '1–3h', textColor: '#1e40af' },
                 { color: config.accentColor, label: '3h+', textColor: 'white' },
               ].map((l, i) => (
                 <div key={i} className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
@@ -1719,7 +1719,7 @@ const Planning = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Tipo de Meta</label>
                 <select className="w-full px-3 py-2.5 rounded-xl border text-sm font-medium focus:outline-none transition-colors" style={{background: 'inherit', borderColor: 'var(--border, #e2e8f0)', color: 'inherit'}} value={draft.type} onChange={e => setDraft({...draft, type: e.target.value as Goal['type']})}>
-                  <option value="daily">DiÃ¡ria</option>
+                  <option value="daily">Diária</option>
                   <option value="weekly">Semanal</option>
                   <option value="monthly">Mensal</option>
                 </select>
@@ -1764,7 +1764,7 @@ const Planning = () => {
                     <motion.div initial={{ width: 0 }} animate={{ width: `${goal.pct}%` }} transition={{ duration: 0.8, delay: i * 0.1 }}
                       className="h-full rounded-full" style={{ backgroundColor: barColors[goal.type] }} />
                   </div>
-                  <p className="text-[11px] text-slate-400 text-right">{goal.pct}% concluÃ­do</p>
+                  <p className="text-[11px] text-slate-400 text-right">{goal.pct}% concluído</p>
                 </motion.div>
               ))}
             </div>
@@ -1908,14 +1908,14 @@ const Reports = () => {
   const getSubjectColor = (name: string) => subjects.find(s => s.name === name)?.color || '#6366f1';
   const selectedSubjectColor = useMemo(() => filters.subjectId === 'all' ? '#6366f1' : subjects.find(s => s.id === parseInt(filters.subjectId))?.color || '#6366f1', [filters.subjectId, subjects]);
   const totalHoursDonut = distributionData.reduce((a, b) => a + b.value, 0);
-  const periodLabel: Record<string, string> = { today: 'Hoje', '7d': 'Ãšltimos 7 dias', '30d': 'Ãšltimos 30 dias', '90d': 'Ãšltimos 90 dias', month: 'MÃªs atual', year: 'Este ano', all: 'Todo o histÃ³rico' };
+  const periodLabel: Record<string, string> = { today: 'Hoje', '7d': 'Últimos 7 dias', '30d': 'Últimos 30 dias', '90d': 'Últimos 90 dias', month: 'Mês atual', year: 'Este ano', all: 'Todo o histórico' };
 
   const DeltaBadge = ({ value, unit = 'h' }: { value: number; unit?: string }) => {
-    if (value === 0) return <span className="text-xs font-bold text-slate-400">= igual ao perÃ­odo anterior</span>;
+    if (value === 0) return <span className="text-xs font-bold text-slate-400">= igual ao período anterior</span>;
     return (
       <span className={cn("text-xs font-bold flex items-center gap-1", value > 0 ? "text-emerald-600" : "text-rose-500")}>
         <TrendingUp size={12} className={value < 0 ? "rotate-180" : ""} />
-        {value > 0 ? '+' : ''}{value}{unit} comparado ao perÃ­odo anterior
+        {value > 0 ? '+' : ''}{value}{unit} comparado ao período anterior
       </span>
     );
   };
@@ -1924,18 +1924,18 @@ const Reports = () => {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>RelatÃ³rios e AnÃ¡lises</h1>
-          <p className="text-slate-500">Visualize sua evoluÃ§Ã£o e tome decisÃµes baseadas em dados.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Relatórios e Análises</h1>
+          <p className="text-slate-500">Visualize sua evolução e tome decisões baseadas em dados.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <select className="px-4 py-2.5 rounded-xl border text-sm font-bold shadow-sm" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={filters.period} onChange={e => setFilters({ ...filters, period: e.target.value })}>
             <option value="today">Hoje</option>
-            <option value="7d">Ãšltimos 7 dias</option>
-            <option value="30d">Ãšltimos 30 dias</option>
-            <option value="90d">Ãšltimos 90 dias</option>
-            <option value="month">MÃªs atual</option>
+            <option value="7d">Últimos 7 dias</option>
+            <option value="30d">Últimos 30 dias</option>
+            <option value="90d">Últimos 90 dias</option>
+            <option value="month">Mês atual</option>
             <option value="year">Este ano</option>
-            <option value="all">Todo o histÃ³rico</option>
+            <option value="all">Todo o histórico</option>
           </select>
           <select className="px-4 py-2.5 rounded-xl border text-sm font-bold shadow-sm" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={filters.subjectId} onChange={e => setFilters({ ...filters, subjectId: e.target.value })}>
             <option value="all">Todas as Disciplinas</option>
@@ -1947,9 +1947,9 @@ const Reports = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total de Horas', value: `${totalHours.toFixed(1)}h`, icon: Clock, bg: 'bg-indigo-50', border: 'border-indigo-100', iconBg: 'bg-indigo-500', delta: <DeltaBadge value={hoursDiff} /> },
-          { label: 'MÃ©dia de ExercÃ­cios', value: `${mediaExercicios}%`, icon: Target, bg: 'bg-emerald-50', border: 'border-emerald-100', iconBg: 'bg-emerald-500', delta: <DeltaBadge value={mediaExercicios - prevMedia} unit="%" /> },
-          { label: 'QuestÃµes Totais', value: totalQuestoes, icon: CheckCircle2, bg: 'bg-amber-50', border: 'border-amber-100', iconBg: 'bg-amber-500', delta: <DeltaBadge value={totalQuestoes - prevQuestoes} unit="" /> },
-          { label: 'SessÃµes', value: sessionsCount, icon: BarChart3, bg: 'bg-rose-50', border: 'border-rose-100', iconBg: 'bg-rose-500', delta: <DeltaBadge value={sessionsCount - prevSessionsCount} unit="" /> }
+          { label: 'Média de Exercícios', value: `${mediaExercicios}%`, icon: Target, bg: 'bg-emerald-50', border: 'border-emerald-100', iconBg: 'bg-emerald-500', delta: <DeltaBadge value={mediaExercicios - prevMedia} unit="%" /> },
+          { label: 'Questões Totais', value: totalQuestoes, icon: CheckCircle2, bg: 'bg-amber-50', border: 'border-amber-100', iconBg: 'bg-amber-500', delta: <DeltaBadge value={totalQuestoes - prevQuestoes} unit="" /> },
+          { label: 'Sessões', value: sessionsCount, icon: BarChart3, bg: 'bg-rose-50', border: 'border-rose-100', iconBg: 'bg-rose-500', delta: <DeltaBadge value={sessionsCount - prevSessionsCount} unit="" /> }
         ].map((card, i) => (
           <div key={i} className={cn("rounded-2xl border p-5 space-y-3", card.bg, card.border)}>
             <div className="flex items-center justify-between">
@@ -1963,7 +1963,7 @@ const Reports = () => {
       </div>
 
       <div className="flex gap-1 p-1 rounded-2xl w-fit" style={{background:'var(--border2,#f1f5f9)'}}>
-        {([{ id: 'evolution', label: 'EvoluÃ§Ã£o' }, { id: 'subjects', label: 'Disciplinas' }, { id: 'distribution', label: 'DistribuiÃ§Ã£o' }] as const).map(tab => (
+        {([{ id: 'evolution', label: 'Evolução' }, { id: 'subjects', label: 'Disciplinas' }, { id: 'distribution', label: 'Distribuição' }] as const).map(tab => (
           <button key={tab.id} onClick={() => setActiveTabLocal(tab.id)} className={cn("px-6 py-2.5 rounded-xl font-bold text-sm transition-all", activeTab === tab.id ? "shadow-sm" : "opacity-60 hover:opacity-90")} style={activeTab === tab.id ? {background:'var(--surface,#fff)',color:'inherit'} : {}}>
             {tab.label}
           </button>
@@ -1973,7 +1973,7 @@ const Reports = () => {
       {activeTab === 'evolution' && (
         <div className="rounded-2xl border shadow-sm p-6 space-y-4" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)'}}>
           <div className="flex items-center justify-between">
-            <div><h3 className="font-bold" style={{color: 'inherit'}}>Horas de Estudo (EvoluÃ§Ã£o)</h3><p className="text-sm opacity-60">{periodLabel[filters.period] || '7 dias'}</p></div>
+            <div><h3 className="font-bold" style={{color: 'inherit'}}>Horas de Estudo (Evolução)</h3><p className="text-sm opacity-60">{periodLabel[filters.period] || '7 dias'}</p></div>
             <DeltaBadge value={hoursDiff} />
           </div>
           <div className="h-80">
@@ -1999,7 +1999,7 @@ const Reports = () => {
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex flex-col items-center justify-center gap-3" style={{color:'var(--border,#e2e8f0)'}}>
-                <BarChart3 size={48} /><p className="text-sm font-medium opacity-60">Nenhuma sessÃ£o registrada neste perÃ­odo</p>
+                <BarChart3 size={48} /><p className="text-sm font-medium opacity-60">Nenhuma sessão registrada neste período</p>
               </div>
             )}
           </div>
@@ -2008,7 +2008,7 @@ const Reports = () => {
 
       {activeTab === 'subjects' && (
         <div className="rounded-2xl border shadow-sm p-6 space-y-4" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)'}}>
-          <div><h3 className="font-bold" style={{color: 'inherit'}}>ComparaÃ§Ã£o entre Disciplinas</h3><p className="text-sm opacity-60">Horas estudadas por matÃ©ria no perÃ­odo</p></div>
+          <div><h3 className="font-bold" style={{color: 'inherit'}}>Comparação entre Disciplinas</h3><p className="text-sm opacity-60">Horas estudadas por matéria no período</p></div>
           <div className="h-72">
             {rankingData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -2024,7 +2024,7 @@ const Reports = () => {
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-3">
-                <BookOpen size={48} /><p className="text-sm font-medium">Nenhum dado disponÃ­vel</p>
+                <BookOpen size={48} /><p className="text-sm font-medium">Nenhum dado disponível</p>
               </div>
             )}
           </div>
@@ -2033,10 +2033,10 @@ const Reports = () => {
 
       {activeTab === 'distribution' && (
         <div className="rounded-2xl border shadow-sm p-6 space-y-6" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)'}}>
-          <div><h3 className="font-bold" style={{color: 'inherit'}}>DistribuiÃ§Ã£o por Disciplina</h3><p className="text-sm opacity-60">Percentual de tempo por matÃ©ria</p></div>
+          <div><h3 className="font-bold" style={{color: 'inherit'}}>Distribuição por Disciplina</h3><p className="text-sm opacity-60">Percentual de tempo por matéria</p></div>
           {distributionData.length === 0 ? (
             <div className="h-48 flex flex-col items-center justify-center opacity-30 gap-3">
-              <BarChart3 size={48} /><p className="text-sm font-medium">Nenhuma sessÃ£o registrada no perÃ­odo.</p>
+              <BarChart3 size={48} /><p className="text-sm font-medium">Nenhuma sessão registrada no período.</p>
             </div>
           ) : (
             <div className="flex flex-col lg:flex-row items-center gap-10">
@@ -2050,7 +2050,7 @@ const Reports = () => {
                         const x = cx + radius * Math.cos(-midAngle * RADIAN);
                         const y = cy + radius * Math.sin(-midAngle * RADIAN);
                         const anchor = x > cx ? 'start' : 'end';
-                        const shortName = name.length > 14 ? name.substring(0, 13) + 'â€¦' : name;
+                        const shortName = name.length > 14 ? name.substring(0, 13) + '…' : name;
                         return (
                           <g>
                             <text x={x} y={y - 7} textAnchor={anchor} dominantBaseline="middle" style={{fontSize: 12, fontWeight: 700, fill: 'currentColor'}} className="recharts-text">{shortName}</text>
@@ -2385,7 +2385,7 @@ const SettingsPage = () => {
 };
 
 
-// --- HistÃ³rico de SessÃµes ---
+// --- Histórico de Sessões ---
 const SessionHistory = () => {
   const { config } = useAppConfig();
   const th = useTheme();
@@ -2427,25 +2427,25 @@ const SessionHistory = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold" style={{color:'inherit'}}>HistÃ³rico de SessÃµes</h1>
-          <p style={{color: th.textMuted}}>{filtered.length} sessÃ£o(Ãµes) â€¢ {totalHours.toFixed(1)}h no perÃ­odo</p>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color:'inherit'}}>Histórico de Sessões</h1>
+          <p style={{color: th.textMuted}}>{filtered.length} sessão(ões) • {totalHours.toFixed(1)}h no período</p>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-3 p-5 rounded-2xl border" style={{background: th.surface, borderColor: th.border}}>
         <input
           type="text"
-          placeholder="ðŸ” Buscar por disciplina ou notas..."
+          placeholder="🔍 Buscar por disciplina ou notas..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="flex-1 min-w-[200px] px-4 py-2.5 rounded-xl border text-sm"
           style={selectStyle}
         />
         <select className="px-4 py-2.5 rounded-xl border text-sm font-bold" style={selectStyle} value={filters.period} onChange={e => setFilters({...filters, period: e.target.value})}>
-          <option value="7d">Ãšltimos 7 dias</option>
-          <option value="30d">Ãšltimos 30 dias</option>
-          <option value="90d">Ãšltimos 90 dias</option>
-          <option value="all">Todo o histÃ³rico</option>
+          <option value="7d">Últimos 7 dias</option>
+          <option value="30d">Últimos 30 dias</option>
+          <option value="90d">Últimos 90 dias</option>
+          <option value="all">Todo o histórico</option>
         </select>
         <select className="px-4 py-2.5 rounded-xl border text-sm font-bold" style={selectStyle} value={filters.subjectId} onChange={e => setFilters({...filters, subjectId: e.target.value})}>
           <option value="all">Todas as disciplinas</option>
@@ -2454,8 +2454,8 @@ const SessionHistory = () => {
         <select className="px-4 py-2.5 rounded-xl border text-sm font-bold" style={selectStyle} value={filters.type} onChange={e => setFilters({...filters, type: e.target.value})}>
           <option value="all">Todos os tipos</option>
           <option value="theory">Teoria</option>
-          <option value="exercises">ExercÃ­cios</option>
-          <option value="revision">RevisÃ£o</option>
+          <option value="exercises">Exercícios</option>
+          <option value="revision">Revisão</option>
           <option value="simulated">Simulado</option>
         </select>
       </div>
@@ -2464,7 +2464,7 @@ const SessionHistory = () => {
         {filtered.length === 0 ? (
           <div className="text-center py-16 rounded-2xl border" style={{background: th.surface, borderColor: th.border}}>
             <BookOpen size={48} className="mx-auto mb-3 opacity-20" />
-            <p className="font-bold opacity-40">Nenhuma sessÃ£o encontrada</p>
+            <p className="font-bold opacity-40">Nenhuma sessão encontrada</p>
           </div>
         ) : filtered.map((session, i) => (
           <motion.div
@@ -2588,13 +2588,13 @@ export default function App() {
     { icon: Flag, label: 'Objetivos', tab: 'objectives' },
     { icon: BookOpen, label: 'Disciplinas', tab: 'subjects' },
     { icon: Layers, label: 'Assuntos', tab: 'topics' },
-    { icon: Timer, label: 'CronÃ´metro', tab: 'timer' },
-    { icon: RefreshCcw, label: 'RevisÃµes', tab: 'reviews', badge: pendingReviewsCount },
-    { icon: Target, label: 'ExercÃ­cios', tab: 'exercises' },
+    { icon: Timer, label: 'Cronômetro', tab: 'timer' },
+    { icon: RefreshCcw, label: 'Revisões', tab: 'reviews', badge: pendingReviewsCount },
+    { icon: Target, label: 'Exercícios', tab: 'exercises' },
     { icon: Calendar, label: 'Planejamento', tab: 'planning' },
-    { icon: History, label: 'HistÃ³rico', tab: 'history' },
-    { icon: BarChart3, label: 'RelatÃ³rios', tab: 'reports' },
-    { icon: Settings, label: 'ConfiguraÃ§Ãµes', tab: 'settings' },
+    { icon: History, label: 'Histórico', tab: 'history' },
+    { icon: BarChart3, label: 'Relatórios', tab: 'reports' },
+    { icon: Settings, label: 'Configurações', tab: 'settings' },
   ];
 
   const handleNavClick = (tab: string) => {
@@ -2664,7 +2664,7 @@ export default function App() {
             <span className="text-xs font-bold" style={{ color: config.theme === 'dark' ? '#94a3b8' : '#475569' }}>
               {Math.floor(todayMinutes/60)}h {todayMinutes%60}m / {config.dailyGoalHours}h
             </span>
-            {dailyGoalMet && <span className="text-xs font-black text-emerald-500">âœ“</span>}
+            {dailyGoalMet && <span className="text-xs font-black text-emerald-500">✓</span>}
           </div>
           <div className="h-2 rounded-full overflow-hidden" style={{ background: config.theme === 'dark' ? '#334155' : '#e2e8f0' }}>
             <div className="h-full rounded-full transition-all duration-500"
@@ -2679,13 +2679,13 @@ export default function App() {
     <AppContext.Provider value={{ config, setConfig, refreshBadges, navigateTo: setActiveTab }}>
       <div className="min-h-screen flex font-sans" style={{ background: appBg, color: appColor }}>
 
-        {/* â”€â”€ DESKTOP SIDEBAR â”€â”€ */}
+        {/* ── DESKTOP SIDEBAR ── */}
         <aside className="hidden lg:flex w-64 xl:w-72 border-r p-5 flex-col gap-6 sticky top-0 h-screen overflow-y-auto flex-shrink-0"
           style={{ background: sidebarBg, borderColor: sidebarBorder }}>
           <SidebarContent />
         </aside>
 
-        {/* â”€â”€ MOBILE OVERLAY â”€â”€ */}
+        {/* ── MOBILE OVERLAY ── */}
         <AnimatePresence>
           {sidebarOpen && (
             <>
@@ -2750,7 +2750,7 @@ export default function App() {
                       <span className="text-xs font-bold" style={{ color: config.theme === 'dark' ? '#94a3b8' : '#475569' }}>
                         {Math.floor(todayMinutes/60)}h {todayMinutes%60}m / {config.dailyGoalHours}h
                       </span>
-                      {dailyGoalMet && <span className="text-xs font-black text-emerald-500">âœ“ Meta!</span>}
+                      {dailyGoalMet && <span className="text-xs font-black text-emerald-500">✓ Meta!</span>}
                     </div>
                     <div className="h-2 rounded-full overflow-hidden" style={{ background: config.theme === 'dark' ? '#334155' : '#e2e8f0' }}>
                       <div className="h-full rounded-full transition-all duration-500"
@@ -2763,10 +2763,10 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* â”€â”€ MAIN CONTENT â”€â”€ */}
+        {/* ── MAIN CONTENT ── */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
-          {/* â”€â”€ MOBILE TOP BAR â”€â”€ */}
+          {/* ── MOBILE TOP BAR ── */}
           <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b sticky top-0 z-30 flex-shrink-0"
             style={{ background: sidebarBg, borderColor: sidebarBorder }}>
             <button onClick={() => setSidebarOpen(true)}
@@ -2797,7 +2797,7 @@ export default function App() {
             </div>
           </header>
 
-          {/* â”€â”€ PAGE CONTENT â”€â”€ */}
+          {/* ── PAGE CONTENT ── */}
           <div className="flex-1 overflow-y-auto relative">
             <div className="p-4 sm:p-6 lg:p-8 xl:p-10 max-w-6xl mx-auto">
               {renderContent()}
@@ -2805,13 +2805,13 @@ export default function App() {
             <AutoSaveIndicator />
           </div>
 
-          {/* â”€â”€ MOBILE BOTTOM NAV â”€â”€ */}
+          {/* ── MOBILE BOTTOM NAV ── */}
           <nav className="lg:hidden flex items-center justify-around border-t py-2 flex-shrink-0 sticky bottom-0 z-30"
             style={{ background: sidebarBg, borderColor: sidebarBorder }}>
             {[
-              { icon: LayoutDashboard, tab: 'dashboard', label: 'InÃ­cio' },
+              { icon: LayoutDashboard, tab: 'dashboard', label: 'Início' },
               { icon: Timer, tab: 'timer', label: 'Foco' },
-              { icon: RefreshCcw, tab: 'reviews', label: 'RevisÃµes', badge: pendingReviewsCount },
+              { icon: RefreshCcw, tab: 'reviews', label: 'Revisões', badge: pendingReviewsCount },
               { icon: BarChart3, tab: 'reports', label: 'Dados' },
               { icon: Settings, tab: 'settings', label: 'Config' },
             ].map(item => (
@@ -2833,4 +2833,7 @@ export default function App() {
     </AppContext.Provider>
   );
 }
+
+
+
 
