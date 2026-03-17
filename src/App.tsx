@@ -271,7 +271,8 @@ const Dashboard = () => {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Olá, {config.userName || 'Estudante'}! ðŸ‘‹</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Olá, {config.userName || 'Estudante'}!</h1>
+
           <p style={{color: 'inherit', opacity: 0.6}}>Aqui está o resumo do seu progresso hoje.</p>
         </div>
         <div className="flex gap-3">
