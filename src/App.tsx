@@ -2094,6 +2094,117 @@ const Reports = () => {
           )}
         </div>
       )}
+    </div>
+  );
+};
+
+
+// --- Settings Page ---
+
+const ACCENT_COLORS = [
+  { label: 'Azul', value: '#2563eb' },
+  { label: 'Esmeralda', value: '#10b981' },
+  { label: 'Roxo', value: '#7c3aed' },
+  { label: 'Rosa', value: '#db2777' },
+  { label: 'Laranja', value: '#ea580c' },
+  { label: 'Ciano', value: '#0891b2' },
+  { label: 'Vermelho', value: '#dc2626' },
+  { label: 'Âmbar', value: '#d97706' },
+];
+
+const NameInput = React.memo(({ defaultValue, inputRef, accentColor }: {
+  defaultValue: string;
+  inputRef: React.RefObject<HTMLInputElement>;
+  accentColor: string;
+}) => (
+  <input
+    ref={inputRef}
+    type="text"
+    autoComplete="off"
+    defaultValue={defaultValue}
+    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-medium focus:outline-none focus:ring-2 transition-all"
+    style={{ '--tw-ring-color': accentColor } as any}
+    placeholder="Ex: João Silva"
+  />
+));
+
+const SettingsPage = () => {
+  const { config, setConfig } = useAppConfig();
+  const [local, setLocal] = useState<AppConfig>(config);
+  const nameInputRef = React.useRef<HTMLInputElement>(null);
+  const [saved, setSaved] = useState(false);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+
+  useEffect(() => {
+    Promise.all([api.sessions.list(), api.exercises.list(), api.goals.list()])
+      .then(([s, e, g]) => { setSessions(s); setExercises(e); setGoals(g); });
+  }, []);
+
+  const handleSave = async () => {
+    const nameValue = nameInputRef.current?.value.trim() || config.userName;
+    const final = { ...local, userName: nameValue };
+    setLocal(final);
+    setConfig(final);
+    applyTheme(final);
+    localStorage.setItem('planoaprovado_user_name', nameValue);
+    await api.preferences.set('app_config', final);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleExportJSON = () => {
+    const data = { sessions, exercises, goals, exportedAt: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `planoaprovado_backup_${format(new Date(), 'yyyy-MM-dd')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['Data','Disciplina','Duração (min)','Tipo','Notas'];
+    const rows = sessions.map(s => [s.date, s.subject_name || '', s.duration, s.type, s.notes || ''].map(v => `"${String(v).replace(/"/g, '""')}"`));
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sessoes_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const Section = ({ title, icon: Icon, children }: { title: string; icon: any; children: React.ReactNode }) => (
+    <div className="rounded-2xl border shadow-sm overflow-hidden" style={{background: 'var(--surface, #fff)', borderColor: 'var(--border, #e2e8f0)'}}>
+      <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+        <div className="p-2 rounded-xl bg-slate-50"><Icon size={18} className="text-slate-600" /></div>
+        <h3 className="font-bold" style={{color: 'inherit'}}>{title}</h3>
+      </div>
+      <div className="p-4 sm:p-6">{children}</div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Configurações</h1>
+          <p className="text-slate-500">Personalize sua experiência no app.</p>
+        </div>
+        <button
+          onClick={handleSave}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white shadow-lg transition-all"
+          style={{ backgroundColor: local.accentColor }}
+        >
+          {saved ? <CheckCircle2 size={18} /> : <Save size={18} />}
+          {saved ? 'Salvo!' : 'Salvar alterações'}
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Section title="Perfil" icon={User}>
           <div className="space-y-5">
@@ -2164,7 +2275,7 @@ const Reports = () => {
         <Section title="Tema" icon={Palette}>
           <div className="space-y-5">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-3">AparÃªncia</label>
+              <label className="block text-sm font-bold text-slate-700 mb-3">Aparência</label>
               <div className="grid grid-cols-3 gap-3">
                 {([
                   { id: 'light', label: 'Claro', icon: Sun, bg: 'bg-white', border: 'border-slate-200', text: 'text-slate-900' },
@@ -2208,13 +2319,13 @@ const Reports = () => {
 
         <Section title="Exportar Dados" icon={Download}>
           <div className="space-y-4">
-            <p className="text-sm opacity-60">FaÃ§a backup dos seus dados de estudo.</p>
+            <p className="text-sm opacity-60">Faça backup dos seus dados de estudo.</p>
             <div className="grid grid-cols-1 gap-3">
               <button onClick={handleExportJSON} className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all group">
                 <div className="p-3 rounded-xl bg-indigo-50 group-hover:bg-indigo-100 transition-colors"><Database size={20} className="text-indigo-600" /></div>
                 <div className="text-left flex-1">
                   <p className="font-bold" style={{color: 'inherit'}}>Backup completo (JSON)</p>
-                  <p className="text-xs opacity-60">SessÃµes, exercÃ­cios e metas</p>
+                  <p className="text-xs opacity-60">Sessões, exercícios e metas</p>
                 </div>
                 <Download size={16} className="text-slate-400 group-hover:text-slate-600" />
               </button>
@@ -2222,8 +2333,8 @@ const Reports = () => {
               <button onClick={handleExportCSV} className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all group">
                 <div className="p-3 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 transition-colors"><Download size={20} className="text-emerald-600" /></div>
                 <div className="text-left flex-1">
-                  <p className="font-bold" style={{color: 'inherit'}}>SessÃµes de estudo (CSV)</p>
-                  <p className="text-xs opacity-60">{sessions.length} sessÃµes registradas</p>
+                  <p className="font-bold" style={{color: 'inherit'}}>Sessões de estudo (CSV)</p>
+                  <p className="text-xs opacity-60">{sessions.length} sessões registradas</p>
                 </div>
                 <Download size={16} className="text-slate-400 group-hover:text-slate-600" />
               </button>
@@ -2234,10 +2345,10 @@ const Reports = () => {
         <Section title="Seus Dados" icon={Database}>
           <div className="grid grid-cols-2 gap-4">
             {[
-              { label: 'SessÃµes', value: sessions.length, color: 'bg-indigo-50 text-indigo-700' },
-              { label: 'ExercÃ­cios', value: exercises.length, color: 'bg-emerald-50 text-emerald-700' },
+              { label: 'Sessões', value: sessions.length, color: 'bg-indigo-50 text-indigo-700' },
+              { label: 'Exercícios', value: exercises.length, color: 'bg-emerald-50 text-emerald-700' },
               { label: 'Total de horas', value: `${(sessions.reduce((a, s) => a + s.duration, 0) / 60).toFixed(0)}h`, color: 'bg-amber-50 text-amber-700' },
-              { label: 'QuestÃµes', value: exercises.reduce((a, e) => a + e.total, 0), color: 'bg-rose-50 text-rose-700' },
+              { label: 'Questões', value: exercises.reduce((a, e) => a + e.total, 0), color: 'bg-rose-50 text-rose-700' },
             ].map((item, i) => (
               <div key={i} className={cn("p-4 rounded-2xl text-center", item.color.split(' ')[0])}>
                 <p className="text-2xl font-black">{item.value}</p>
@@ -2246,20 +2357,19 @@ const Reports = () => {
             ))}
           </div>
         </Section>
-
       </div>
 
       <div className="rounded-2xl border shadow-sm p-6" style={{background: 'var(--surface, #fff)', borderColor: 'var(--border, #e2e8f0)'}}>
-        <h3 className="font-bold text-inherit mb-4" style={{color:'inherit'}}>Preview das alteraÃ§Ãµes</h3>
+        <h3 className="font-bold text-inherit mb-4" style={{color:'inherit'}}>Preview das alterações</h3>
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50">
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: local.accentColor }}>
               {(nameInputRef.current?.value || config.userName).charAt(0).toUpperCase() || 'U'}
             </div>
-            <span className="font-bold" style={{color: 'inherit'}}>OlÃ¡, {nameInputRef.current?.value || config.userName || 'vocÃª'}! ðŸ‘‹</span>
+            <span className="font-bold" style={{color: 'inherit'}}>Olá, {nameInputRef.current?.value || config.userName || 'você'}! 👋</span>
           </div>
           <button className="px-5 py-2.5 rounded-xl text-white font-bold text-sm shadow" style={{ backgroundColor: local.accentColor }}>
-            BotÃ£o de aÃ§Ã£o
+            Botão de ação
           </button>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: local.accentColor }} />
