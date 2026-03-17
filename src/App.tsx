@@ -2238,10 +2238,12 @@ const SettingsPage = () => {
                       });
                       const data = await res.json();
                       if (data.url) {
-                        const next = { ...local, avatarUrl: data.url };
-                        setLocal(next);
-                        setConfig(next);
-                        await api.preferences.set('app_config', next);
+                       const nameValue = nameInputRef.current?.value.trim() || local.userName;
+                       const next = { ...local, userName: nameValue, avatarUrl: data.url };
+                       setLocal(next);
+                       setConfig(next);
+                       localStorage.setItem('planoaprovado_user_name', nameValue);
+                       await api.preferences.set('app_config', next);
                       }
                     }}
                   />
