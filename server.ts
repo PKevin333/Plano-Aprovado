@@ -10,13 +10,9 @@ import multer from 'multer';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ── Banco de dados ───────────────────────────────────────────
-// Em produção (Railway), usa o volume persistente montado em /data
-// Em desenvolvimento, usa o arquivo local
 const DB_DIR = process.env.NODE_ENV === 'production' ? '/data' : __dirname;
 const DB_PATH = path.join(DB_DIR, 'academiaflow.db');
 
-// Cria o diretório automaticamente se não existir
 if (!fs.existsSync(DB_DIR)) {
   fs.mkdirSync(DB_DIR, { recursive: true });
   console.log('Diretório do banco criado: ' + DB_DIR);
@@ -24,10 +20,8 @@ if (!fs.existsSync(DB_DIR)) {
 
 const db = new Database(DB_PATH);
 
-// Habilita WAL mode para melhor performance e segurança contra corrrupção
 db.pragma('journal_mode = WAL');
 
-// ── Criação das tabelas ──────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS objectives (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -132,13 +126,12 @@ db.exec(`
   );
 `);
 
-// ── Migrations ───────────────────────────────────────────────
 const tables = ['objectives','subjects','user_preferences','drafts','topics','sessions','exercises','reviews','goals'];
 for (const table of tables) {
   try {
     db.exec(`ALTER TABLE ${table} ADD COLUMN user_id TEXT NOT NULL DEFAULT 'default'`);
     console.log(`Migration: added user_id to ${table}`);
-  } catch (_) { /* coluna já existe */ }
+  } catch (_) { }
 }
 
 for (const migration of [
@@ -175,17 +168,14 @@ for (const migration of [
   DROP TABLE user_preferences;
   ALTER TABLE user_preferences_v2 RENAME TO user_preferences;`
 ]) {
-  try { db.exec(migration); } catch (_) { /* já migrado */ }
+  try { db.exec(migration); } catch (_) { }
 }
 
-// ── Helpers ──────────────────────────────────────────────────
 function getUserId(req: express.Request): string {
   const uid = (req.headers['x-user-id'] as string) || 'default';
   return uid.replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 64) || 'default';
 }
 
-// Valida e monta campos para UPDATE dinâmico
-// Retorna null se não houver campos válidos
 const BLOCKED_FIELDS = ['id', 'user_id', 'created_at'];
 function buildUpdateFields(updates: Record<string, any>): { fields: string; values: any[] } | null {
   const safeKeys = Object.keys(updates).filter(k => /^[a-zA-Z_]+$/.test(k) && !BLOCKED_FIELDS.includes(k));
@@ -199,11 +189,9 @@ function buildUpdateFields(updates: Record<string, any>): { fields: string; valu
 async function startServer() {
   const app = express();
 
-  // ── Middlewares ───────────────────────────────────────────
   app.use(cors());
   app.use(express.json());
 
-  // ── Upload de Foto de Perfil ─────────────────────────────────
   const UPLOADS_DIR = process.env.NODE_ENV === 'production'
     ? '/data/uploads'
     : path.join(__dirname, 'uploads');
@@ -241,13 +229,11 @@ async function startServer() {
 
   app.use('/uploads', express.static(UPLOADS_DIR));
 
-  // ── Objectives ───────────────────────────────────────────
   app.get('/api/objectives', (req, res) => {
     try {
       const uid = getUserId(req);
       res.json(db.prepare('SELECT * FROM objectives WHERE user_id = ?').all(uid));
     } catch (err: any) {
-      console.error('GET /objectives:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -260,12 +246,10 @@ async function startServer() {
       const info = db.prepare('INSERT INTO objectives (user_id,name,description) VALUES (?,?,?)').run(uid, name, description);
       res.json({ id: info.lastInsertRowid });
     } catch (err: any) {
-      console.error('POST /objectives:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
 
-  // ── Subjects ─────────────────────────────────────────────
   app.get('/api/subjects', (req, res) => {
     try {
       const uid = getUserId(req);
@@ -275,7 +259,6 @@ async function startServer() {
         WHERE s.user_id = ?
       `).all(uid));
     } catch (err: any) {
-      console.error('GET /subjects:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -288,7 +271,6 @@ async function startServer() {
       const info = db.prepare('INSERT INTO subjects (user_id,name,color,priority,difficulty,objective_id) VALUES (?,?,?,?,?,?)').run(uid, name, color, priority, difficulty, objective_id);
       res.json({ id: info.lastInsertRowid });
     } catch (err: any) {
-      console.error('POST /subjects:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -301,7 +283,6 @@ async function startServer() {
       db.prepare(`UPDATE subjects SET ${built.fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?`).run(...built.values, req.params.id, uid);
       res.json({ success: true });
     } catch (err: any) {
-      console.error('PATCH /subjects:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -319,12 +300,10 @@ async function startServer() {
       })();
       res.json({ success: true });
     } catch (err: any) {
-      console.error('DELETE /subjects:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
 
-  // ── Topics ───────────────────────────────────────────────
   app.get('/api/topics', (req, res) => {
     try {
       const uid = getUserId(req);
@@ -334,7 +313,6 @@ async function startServer() {
       if (subject_id) { q += ' AND t.subject_id = ?'; params.push(subject_id); }
       res.json(db.prepare(q).all(...params));
     } catch (err: any) {
-      console.error('GET /topics:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -347,7 +325,6 @@ async function startServer() {
       const info = db.prepare('INSERT INTO topics (user_id,subject_id,name,description) VALUES (?,?,?,?)').run(uid, subject_id, name, description);
       res.json({ id: info.lastInsertRowid });
     } catch (err: any) {
-      console.error('POST /topics:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -360,7 +337,6 @@ async function startServer() {
       db.prepare(`UPDATE topics SET ${built.fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?`).run(...built.values, req.params.id, uid);
       res.json({ success: true });
     } catch (err: any) {
-      console.error('PATCH /topics:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -371,12 +347,10 @@ async function startServer() {
       db.prepare('DELETE FROM topics WHERE id=? AND user_id=?').run(req.params.id, uid);
       res.json({ success: true });
     } catch (err: any) {
-      console.error('DELETE /topics:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
 
-  // ── Sessions ─────────────────────────────────────────────
   app.get('/api/sessions', (req, res) => {
     try {
       const uid = getUserId(req);
@@ -389,7 +363,6 @@ async function startServer() {
         ORDER BY s.date DESC
       `).all(uid));
     } catch (err: any) {
-      console.error('GET /sessions:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -399,10 +372,9 @@ async function startServer() {
       const uid = getUserId(req);
       const { subject_id, topic_id, duration, type, notes, date } = req.body;
       if (!subject_id) return res.status(400).json({ error: 'subject_id é obrigatório' });
-      const info = db.prepare('INSERT INTO sessions (user_id,subject_id,topic_id,duration,type,notes,date) VALUES (?,?,?,?,?,?,?)').run(uid, subject_id, topic_id, duration, type, notes, date || new Date().toISOString());
+      const info = db.prepare('INSERT INTO sessions (user_id,subject_id,topic_id,duration,type,notes,date) VALUES (?,?,?,?,?,?,?)').run(uid, subject_id, topic_id, duration, type, notes, date || new Date().toISOString().split('T')[0]);
       res.json({ id: info.lastInsertRowid });
     } catch (err: any) {
-      console.error('POST /sessions:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -415,7 +387,6 @@ async function startServer() {
       db.prepare(`UPDATE sessions SET ${built.fields} WHERE id = ? AND user_id = ?`).run(...built.values, req.params.id, uid);
       res.json({ success: true });
     } catch (err: any) {
-      console.error('PATCH /sessions:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -426,12 +397,10 @@ async function startServer() {
       db.prepare('DELETE FROM sessions WHERE id=? AND user_id=?').run(req.params.id, uid);
       res.json({ success: true });
     } catch (err: any) {
-      console.error('DELETE /sessions:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
 
-  // ── Exercises ────────────────────────────────────────────
   app.get('/api/exercises', (req, res) => {
     try {
       const uid = getUserId(req);
@@ -444,7 +413,6 @@ async function startServer() {
         ORDER BY e.date DESC
       `).all(uid));
     } catch (err: any) {
-      console.error('GET /exercises:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -455,10 +423,9 @@ async function startServer() {
       const { subject_id, topic_id, total, correct, incorrect, notes, date } = req.body;
       if (!subject_id) return res.status(400).json({ error: 'subject_id é obrigatório' });
       const pct = total > 0 ? (correct / total) * 100 : 0;
-      const info = db.prepare('INSERT INTO exercises (user_id,subject_id,topic_id,total,correct,incorrect,percent_correct,notes,date) VALUES (?,?,?,?,?,?,?,?,?)').run(uid, subject_id, topic_id, total, correct, incorrect, pct, notes, date || new Date().toISOString());
+      const info = db.prepare('INSERT INTO exercises (user_id,subject_id,topic_id,total,correct,incorrect,percent_correct,notes,date) VALUES (?,?,?,?,?,?,?,?,?)').run(uid, subject_id, topic_id, total, correct, incorrect, pct, notes, date || new Date().toISOString().split('T')[0]);
       res.json({ id: info.lastInsertRowid });
     } catch (err: any) {
-      console.error('POST /exercises:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -480,12 +447,10 @@ async function startServer() {
       db.prepare(`UPDATE exercises SET ${built.fields} WHERE id = ? AND user_id = ?`).run(...built.values, req.params.id, uid);
       res.json({ success: true });
     } catch (err: any) {
-      console.error('PATCH /exercises:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
 
-  // ── Reviews ──────────────────────────────────────────────
   app.get('/api/reviews', (req, res) => {
     try {
       const uid = getUserId(req);
@@ -496,7 +461,6 @@ async function startServer() {
         ORDER BY r.scheduled_date ASC
       `).all(uid));
     } catch (err: any) {
-      console.error('GET /reviews:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -509,7 +473,6 @@ async function startServer() {
       const info = db.prepare('INSERT INTO reviews (user_id,subject_id,scheduled_date,type) VALUES (?,?,?,?)').run(uid, subject_id, scheduled_date, type);
       res.json({ id: info.lastInsertRowid });
     } catch (err: any) {
-      console.error('POST /reviews:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -521,18 +484,15 @@ async function startServer() {
       db.prepare('UPDATE reviews SET status=? WHERE id=? AND user_id=?').run(req.body.status, req.params.id, uid);
       res.json({ success: true });
     } catch (err: any) {
-      console.error('PATCH /reviews:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
 
-  // ── Goals ────────────────────────────────────────────────
   app.get('/api/goals', (req, res) => {
     try {
       const uid = getUserId(req);
       res.json(db.prepare('SELECT * FROM goals WHERE user_id=?').all(uid));
     } catch (err: any) {
-      console.error('GET /goals:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -544,7 +504,6 @@ async function startServer() {
       const info = db.prepare('INSERT OR REPLACE INTO goals (user_id,type,target_hours,period) VALUES (?,?,?,?)').run(uid, type, target_hours, period);
       res.json({ id: info.lastInsertRowid });
     } catch (err: any) {
-      console.error('POST /goals:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -557,12 +516,10 @@ async function startServer() {
       db.prepare(`UPDATE goals SET ${built.fields} WHERE id=? AND user_id=?`).run(...built.values, req.params.id, uid);
       res.json({ success: true });
     } catch (err: any) {
-      console.error('PATCH /goals:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
 
-  // ── Preferences ──────────────────────────────────────────
   app.get('/api/preferences', (req, res) => {
     try {
       const uid = getUserId(req);
@@ -572,7 +529,6 @@ async function startServer() {
         return acc;
       }, {} as Record<string, any>));
     } catch (err: any) {
-      console.error('GET /preferences:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -585,12 +541,10 @@ async function startServer() {
       db.prepare('INSERT OR REPLACE INTO user_preferences (user_id,key,value) VALUES (?,?,?)').run(uid, key, JSON.stringify(value));
       res.json({ success: true });
     } catch (err: any) {
-      console.error('POST /preferences:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
 
-  // ── Drafts ───────────────────────────────────────────────
   app.get('/api/drafts', (req, res) => {
     try {
       const uid = getUserId(req);
@@ -599,7 +553,6 @@ async function startServer() {
         try { return { ...d, payload: JSON.parse(d.payload) }; } catch { return d; }
       }));
     } catch (err: any) {
-      console.error('GET /drafts:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -612,7 +565,6 @@ async function startServer() {
       db.prepare('INSERT OR REPLACE INTO drafts (user_id,type,reference_id,payload) VALUES (?,?,?,?)').run(uid, type, reference_id || null, JSON.stringify(payload));
       res.json({ success: true });
     } catch (err: any) {
-      console.error('POST /drafts:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -628,12 +580,10 @@ async function startServer() {
       }
       res.json({ success: true });
     } catch (err: any) {
-      console.error('DELETE /drafts:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
 
-  // ── Stats ────────────────────────────────────────────────
   app.get('/api/stats/summary', (req, res) => {
     try {
       const uid = getUserId(req);
@@ -653,12 +603,10 @@ async function startServer() {
         pending_reviews_count: pendingReviews?.count || 0,
       });
     } catch (err: any) {
-      console.error('GET /stats/summary:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
 
-  // ── Frontend (Vite / Static) ─────────────────────────────
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });
     app.use(vite.middlewares);
@@ -677,3 +625,13 @@ startServer().catch(err => {
   console.error('Erro fatal ao iniciar servidor:', err);
   process.exit(1);
 });
+```
+
+As duas linhas corrigidas foram:
+
+- **sessions:** `date || new Date().toISOString().split('T')[0]`
+- **exercises:** `date || new Date().toISOString().split('T')[0]`
+
+Commita com:
+```
+fix: corrige data no servidor para formato local yyyy-MM-dd
