@@ -372,7 +372,9 @@ async function startServer() {
       const uid = getUserId(req);
       const { subject_id, topic_id, duration, type, notes, date } = req.body;
       if (!subject_id) return res.status(400).json({ error: 'subject_id é obrigatório' });
-      const info = db.prepare('INSERT INTO sessions (user_id,subject_id,topic_id,duration,type,notes,date) VALUES (?,?,?,?,?,?,?)').run(uid, subject_id, topic_id, duration, type, notes, date || new Date().toISOString().split('T')[0]);
+      const sessionDate = date ? date.substring(0, 10) : new Date().toISOString().split('T')[0];
+      const info = db.prepare('INSERT INTO sessions (user_id,subject_id,topic_id,duration,type,notes,date) VALUES (?,?,?,?,?,?,?)')
+        .run(uid, subject_id, topic_id, duration, type, notes, sessionDate);
       res.json({ id: info.lastInsertRowid });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -423,7 +425,9 @@ async function startServer() {
       const { subject_id, topic_id, total, correct, incorrect, notes, date } = req.body;
       if (!subject_id) return res.status(400).json({ error: 'subject_id é obrigatório' });
       const pct = total > 0 ? (correct / total) * 100 : 0;
-      const info = db.prepare('INSERT INTO exercises (user_id,subject_id,topic_id,total,correct,incorrect,percent_correct,notes,date) VALUES (?,?,?,?,?,?,?,?,?)').run(uid, subject_id, topic_id, total, correct, incorrect, pct, notes, date || new Date().toISOString().split('T')[0]);
+      const exerciseDate = date ? date.substring(0, 10) : new Date().toISOString().split('T')[0];
+      const info = db.prepare('INSERT INTO exercises (user_id,subject_id,topic_id,total,correct,incorrect,percent_correct,notes,date) VALUES (?,?,?,?,?,?,?,?,?)')
+        .run(uid, subject_id, topic_id, total, correct, incorrect, pct, notes, exerciseDate);
       res.json({ id: info.lastInsertRowid });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -470,7 +474,8 @@ async function startServer() {
       const uid = getUserId(req);
       const { subject_id, scheduled_date, type } = req.body;
       if (!subject_id) return res.status(400).json({ error: 'subject_id é obrigatório' });
-      const info = db.prepare('INSERT INTO reviews (user_id,subject_id,scheduled_date,type) VALUES (?,?,?,?)').run(uid, subject_id, scheduled_date, type);
+      const info = db.prepare('INSERT INTO reviews (user_id,subject_id,scheduled_date,type) VALUES (?,?,?,?)')
+        .run(uid, subject_id, scheduled_date, type);
       res.json({ id: info.lastInsertRowid });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -625,13 +630,3 @@ startServer().catch(err => {
   console.error('Erro fatal ao iniciar servidor:', err);
   process.exit(1);
 });
-```
-
-As duas linhas corrigidas foram:
-
-- **sessions:** `date || new Date().toISOString().split('T')[0]`
-- **exercises:** `date || new Date().toISOString().split('T')[0]`
-
-Commita com:
-```
-fix: corrige data no servidor para formato local yyyy-MM-dd
