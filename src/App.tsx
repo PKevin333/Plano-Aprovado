@@ -712,7 +712,7 @@ const Topics = () => {
                 <div className="space-y-4">
                   <input type="text" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold" value={topic.name} onChange={e => handleUpdate(topic.id, { name: e.target.value })} />
                   <textarea className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs h-20 resize-none" value={topic.description} onChange={e => handleUpdate(topic.id, { description: e.target.value })} />
-                  <button onClick={() => setEditingId(null)} className="w-full py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200"></button>
+                  <button onClick={() => setEditingId(null)} className="w-full py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200">Fechar Edição</button>
                 </div>
               ) : (
                 <>
@@ -839,7 +839,7 @@ const StudyTimer = () => {
   
   const [draft, setDraft, clearDraft] = useDraft('study_session', {
     subject_id: 0, topic_id: 0, type: 'theory' as Session['type'], notes: '',
-    duration: 0, date: format(new Date(), 'yyyy-MM-dd'), startTime: '08:00', endTime: '09:00',
+    duration: 0,  format(new Date(), 'yyyy-MM-dd'), startTime: '08:00', endTime: '09:00',
     manualMode: 'duration' as 'duration' | 'range'
   });
 
@@ -857,7 +857,7 @@ const StudyTimer = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('academiaflow_timer', JSON.stringify({ seconds, isActive, isPaused, lastUpdate: Date.now(), draft }));
+    localStorage.setItem('academiaflow_timer', JSON.stringify({ seconds, isActive, isPaused, lastUp Date.now(), draft }));
   }, [seconds, isActive, isPaused, draft]);
 
   useEffect(() => { api.subjects.list().then(setSubjects); }, []);
@@ -907,7 +907,7 @@ const StudyTimer = () => {
       type: sessionData.type,
       notes: sessionData.notes,
       duration: finalDuration,
-      date: sessionData.date || format(new Date(), 'yyyy-MM-dd')
+       sessionData.date || format(new Date(), 'yyyy-MM-dd')
     });
     const prefs = await api.preferences.get();
     const globalEnabled = prefs.reviews_global_enabled !== false;
@@ -923,7 +923,7 @@ const StudyTimer = () => {
       ]) {
         const scheduledDate = new Date(now);
         scheduledDate.setDate(now.getDate() + r.days);
-        await api.reviews.create({ subject_id: sessionData.subject_id, scheduled_date: scheduledDate.toISOString(), type: r.type });
+        await api.reviews.create({ subject_id: sessionData.subject_id, scheduled_ scheduledDate.toISOString(), type: r.type });
       }
       msg += ' Revisões agendadas.';
     } else {
@@ -1101,7 +1101,7 @@ const StudyTimer = () => {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-bold mb-2 opacity-80">Data</label>
-                      <input type="date" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.date} onChange={e => setDraft({...draft, date: e.target.value})} />
+                      <input type="date" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.date} onChange={e => setDraft({...draft,  e.target.value})} />
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-slate-700">Modo de Registro</label>
@@ -1387,7 +1387,7 @@ const ExercisesPage = () => {
       ...draft,
       topic_id: draft.topic_id || undefined,
       incorrect: draft.total - draft.correct,
-      date: new Date().toISOString()
+       new Date().toISOString()
     });
     setIsAdding(false);
     clearDraft();
