@@ -907,7 +907,7 @@ const StudyTimer = () => {
       type: sessionData.type,
       notes: sessionData.notes,
       duration: finalDuration,
-      date: sessionData.date || new Date().toISOString()
+      date: sessionData.date || format(new Date(), 'yyyy-MM-dd')
     });
     const prefs = await api.preferences.get();
     const globalEnabled = prefs.reviews_global_enabled !== false;
@@ -1360,22 +1360,6 @@ const Reviews = () => {
             </div>
           </Card>
 
-          {skippedReviews.length > 0 && (
-            <Card title="Revisões Ignoradas" subtitle="Marcadas para pular">
-              <div className="space-y-3">
-                {skippedReviews.slice(0, 3).map(review => (
-                  <div key={review.id} className="flex items-center gap-4 p-4 rounded-2xl bg-amber-50 border border-amber-100">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0 opacity-60" style={{ backgroundColor: review.subject_color }}>{review.type}</div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-slate-500 truncate">{review.subject_name}</h4>
-                      <p className="text-xs text-slate-400">{format(new Date(review.scheduled_date), "dd/MM/yyyy")}</p>
-                    </div>
-                    <X size={16} className="text-amber-400 flex-shrink-0" />
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
         </div>
       </div>
     </div>
