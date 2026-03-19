@@ -62,6 +62,32 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FIX #1 — Helpers de data para evitar bug de fuso horário (UTC shift)
+//
+// O problema: new Date("2024-01-15") interpreta a string como UTC meia-noite.
+// No Brasil (UTC-3) isso vira 2024-01-14 às 21h — um dia antes!
+// Solução: usar o construtor new Date(ano, mes-1, dia) que é sempre local.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Parseia "yyyy-MM-dd" (ou ISO "yyyy-MM-ddT...") sem deslocamento de fuso. */
+function parseLocalDate(dateStr: string): Date {
+  const s = (dateStr || '').substring(0, 10); // garante só "yyyy-MM-dd"
+  const [y, m, d] = s.split('-').map(Number);
+  if (!y || !m || !d) return new Date(); // fallback seguro
+  return new Date(y, m - 1, d);
+}
+
+/**
+ * Formata datas vindas do banco (podem ser "yyyy-MM-dd" ou ISO completo)
+ * usando parseLocalDate para evitar o bug de fuso.
+ */
+function formatSessionDate(dateStr: string, fmt: string, opts?: object): string {
+  return format(parseLocalDate(dateStr), fmt, opts);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 
 // --- App Context (tema, cor, nome) ---
 
@@ -260,7 +286,8 @@ const Dashboard = () => {
   const studiedDaysThisMonth = new Set(
     sessions
       .filter(s => {
-        const d = new Date(s.date);
+        // FIX: usa parseLocalDate para evitar UTC shift
+        const d = parseLocalDate(s.date);
         return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
       })
       .map(s => s.date.substring(0, 10))
@@ -272,7 +299,6 @@ const Dashboard = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold" style={{color: 'inherit'}}>Olá, {config.userName || 'Estudante'}!</h1>
-
           <p style={{color: 'inherit', opacity: 0.6}}>Aqui está o resumo do seu progresso hoje.</p>
         </div>
         <div className="flex gap-3">
@@ -326,7 +352,7 @@ const Dashboard = () => {
           </div>
         </Card>
 
-        <Card title="Estudos Recentes" action={<button onClick={() => navigateTo('history')} className="text-sm font-semibold hover:underline transition-opacity hover:opacity-70" style={{color: config.accentColor}}>Ver tudo â†’</button>}>
+        <Card title="Estudos Recentes" action={<button onClick={() => navigateTo('history')} className="text-sm font-semibold hover:underline transition-opacity hover:opacity-70" style={{color: config.accentColor}}>Ver tudo →</button>}>
           <div className="space-y-4">
             {stats.recent_sessions.length > 0 ? stats.recent_sessions.map((session) => (
               <div key={session.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
@@ -350,10 +376,8 @@ const Dashboard = () => {
   );
 };
 
-// FIX: DifficultyStars â€” componente dedicado para exibir/editar dificuldade
-// Evita o bug de parseInt em onChange do range que retornava NaN ou string
+// FIX: DifficultyStars — componente dedicado para exibir/editar dificuldade
 const DifficultyStars = ({ value, onChange, readonly = false }: { value: number; onChange?: (v: number) => void; readonly?: boolean }) => {
-  // Garante que value é sempre número inteiro entre 1 e 5
   const safeValue = Math.max(1, Math.min(5, Math.round(Number(value) || 1)));
   return (
     <div className="flex gap-1 items-center">
@@ -404,7 +428,6 @@ const Subjects = () => {
   const handleAdd = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!draft.name.trim()) return;
-    // FIX: Garante que difficulty é número inteiro válido antes de salvar
     const safeData = {
       ...draft,
       difficulty: Math.max(1, Math.min(5, Math.round(Number(draft.difficulty) || 3)))
@@ -416,7 +439,6 @@ const Subjects = () => {
   };
 
   const handleUpdate = async (id: number, data: Partial<Subject>) => {
-    // FIX: Se vier difficulty, garantir que é número inteiro
     const safeData = { ...data };
     if (safeData.difficulty !== undefined) {
       safeData.difficulty = Math.max(1, Math.min(5, Math.round(Number(safeData.difficulty) || 3)));
@@ -488,7 +510,6 @@ const Subjects = () => {
                     {objectives.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                   </select>
                 </div>
-                {/* FIX: Usa DifficultyStars em vez de range para edição inline */}
                 <div>
                   <label className="block text-xs font-bold mb-2 opacity-70">Dificuldade</label>
                   <DifficultyStars
@@ -518,7 +539,6 @@ const Subjects = () => {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Dificuldade</span>
-                    {/* FIX: Usa DifficultyStars readonly para exibição */}
                     <DifficultyStars value={subject.difficulty} readonly />
                   </div>
                 </div>
@@ -545,7 +565,6 @@ const Subjects = () => {
                         name: s.name,
                         color: s.color,
                         priority: s.priority,
-                        // FIX: Garante que difficulty do autocomplete é número
                         difficulty: Math.max(1, Math.min(5, Math.round(Number(s.difficulty) || 3))),
                         objective_id: s.objective_id
                       })}
@@ -582,7 +601,6 @@ const Subjects = () => {
                       </select>
                     </div>
                   </div>
-                  {/* FIX: Dificuldade agora usa DifficultyStars â€” sem bug de NaN/string */}
                   <div>
                     <label className="block text-sm font-bold mb-3 opacity-80">
                       Dificuldade
@@ -616,7 +634,7 @@ const Subjects = () => {
                 <div className="text-center space-y-2">
                   <h2 className="text-xl font-black" style={{color:'inherit'}}>Excluir disciplina?</h2>
                   <p className="text-sm" style={{color:'var(--text-muted,#64748b)'}}>
-                    "<strong>{deleteModal.name}</strong>" e <strong>todas as sessões, exercícios e revisões</strong> vinculadas serÃ£o apagados permanentemente.
+                    "<strong>{deleteModal.name}</strong>" e <strong>todas as sessões, exercícios e revisões</strong> vinculadas serão apagados permanentemente.
                   </p>
                 </div>
                 <div className="flex gap-3 pt-2">
@@ -840,7 +858,9 @@ const StudyTimer = () => {
   const [draft, setDraft, clearDraft] = useDraft('study_session', {
     subject_id: 0, topic_id: 0, type: 'theory' as Session['type'], notes: '',
     duration: 0,
-date: format(new Date(), 'yyyy-MM-dd'), startTime: '08:00', endTime: '09:00',
+    // FIX: usa format() local para garantir data correta sem UTC shift
+    date: format(new Date(), 'yyyy-MM-dd'),
+    startTime: '08:00', endTime: '09:00',
     manualMode: 'duration' as 'duration' | 'range'
   });
 
@@ -902,13 +922,19 @@ date: format(new Date(), 'yyyy-MM-dd'), startTime: '08:00', endTime: '09:00',
       if (finalDuration < 0) finalDuration += 24 * 60;
     }
     if (finalDuration <= 0) return alert('A duração deve ser maior que zero');
+
+    // FIX: garante que a data salva é sempre "yyyy-MM-dd" local (sem UTC shift)
+    const sessionDate = sessionData.date
+      ? sessionData.date.substring(0, 10)
+      : format(new Date(), 'yyyy-MM-dd');
+
     await api.sessions.create({
       subject_id: sessionData.subject_id,
       topic_id: sessionData.topic_id || undefined,
       type: sessionData.type,
       notes: sessionData.notes,
       duration: finalDuration,
-      date: sessionData.date || format(new Date(), 'yyyy-MM-dd')
+      date: sessionDate
     });
     const prefs = await api.preferences.get();
     const globalEnabled = prefs.reviews_global_enabled !== false;
@@ -922,9 +948,15 @@ date: format(new Date(), 'yyyy-MM-dd'), startTime: '08:00', endTime: '09:00',
         { type: '7d' as Review['type'], days: 7 },
         { type: '30d' as Review['type'], days: 30 }
       ]) {
+        // FIX #2 — "scheduled_date" estava com nome truncado "scheduled_" no original,
+        // causando erro de sintaxe que quebrava o build inteiro.
         const scheduledDate = new Date(now);
         scheduledDate.setDate(now.getDate() + r.days);
-        await api.reviews.create({ subject_id: sessionData.subject_id, scheduled_ scheduledDate.toISOString(), type: r.type });
+        await api.reviews.create({
+          subject_id: sessionData.subject_id,
+          scheduled_date: scheduledDate.toISOString(),
+          type: r.type
+        });
       }
       msg += ' Revisões agendadas.';
     } else {
@@ -1102,8 +1134,14 @@ date: format(new Date(), 'yyyy-MM-dd'), startTime: '08:00', endTime: '09:00',
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-bold mb-2 opacity-80">Data</label>
-                      <input type="date" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.date} onChange={e => setDraft({...draft, date: e.target.value})}
- />
+                      {/* FIX: input type="date" retorna "yyyy-MM-dd" direto — correto */}
+                      <input
+                        type="date"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
+                        style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}}
+                        value={draft.date}
+                        onChange={e => setDraft({...draft, date: e.target.value})}
+                      />
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-slate-700">Modo de Registro</label>
@@ -1224,7 +1262,6 @@ const Reviews = () => {
 
   const pendingReviews = reviews.filter(r => r.status === 'pending');
   const completedReviews = reviews.filter(r => r.status === 'completed');
-  const skippedReviews = reviews.filter(r => r.status === 'skipped');
 
   return (
     <div className="space-y-8">
@@ -1329,7 +1366,8 @@ const Reviews = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-bold text-inherit truncate" style={{color:'inherit'}}>{review.subject_name}</h4>
-                  <p className="text-xs opacity-60">Programada para {format(new Date(review.scheduled_date), "dd/MM/yyyy")}</p>
+                  {/* FIX: usa formatSessionDate para evitar UTC shift na exibição */}
+                  <p className="text-xs opacity-60">Programada para {formatSessionDate(review.scheduled_date, "dd/MM/yyyy")}</p>
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                   <button onClick={() => handleSkip(review.id)} title="Ignorar" className="p-2 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all"><X size={18} /></button>
@@ -1353,7 +1391,8 @@ const Reviews = () => {
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0" style={{ backgroundColor: review.subject_color }}>{review.type}</div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-inherit truncate" style={{color:'inherit'}}>{review.subject_name}</h4>
-                    <p className="text-xs opacity-60">Concluída em {format(new Date(review.scheduled_date), "dd/MM/yyyy")}</p>
+                    {/* FIX: usa formatSessionDate */}
+                    <p className="text-xs opacity-60">Concluída em {formatSessionDate(review.scheduled_date, "dd/MM/yyyy")}</p>
                   </div>
                   <CheckCircle2 size={18} className="text-emerald-500 flex-shrink-0" />
                 </div>
@@ -1361,7 +1400,6 @@ const Reviews = () => {
               {completedReviews.length === 0 && <p className="text-sm text-slate-400 text-center py-4">Nenhuma revisão concluída ainda.</p>}
             </div>
           </Card>
-
         </div>
       </div>
     </div>
@@ -1389,7 +1427,8 @@ const ExercisesPage = () => {
       ...draft,
       topic_id: draft.topic_id || undefined,
       incorrect: draft.total - draft.correct,
-       date: new Date().toISOString()
+      // FIX #3: salva só a data local "yyyy-MM-dd", não ISO com horário
+      date: format(new Date(), 'yyyy-MM-dd')
     });
     setIsAdding(false);
     clearDraft();
@@ -1424,7 +1463,8 @@ const ExercisesPage = () => {
               <tbody className="divide-y divide-slate-50">
                 {exercises.map(ex => (
                   <tr key={ex.id} className="text-sm hover:bg-slate-50 transition-colors" style={{color:'inherit'}}>
-                    <td className="py-4 px-4">{format(new Date(ex.date), "dd/MM/yy")}</td>
+                    {/* FIX: usa formatSessionDate para evitar UTC shift */}
+                    <td className="py-4 px-4">{formatSessionDate(ex.date, "dd/MM/yy")}</td>
                     <td className="py-4 px-4 font-bold">{ex.subject_name}</td>
                     <td className="py-4 px-4">{ex.topic_name || '-'}</td>
                     <td className="py-4 px-4">{ex.total}</td>
@@ -1551,11 +1591,11 @@ const Planning = () => {
   const studyByDay = useMemo(() => {
     const map: Record<string, number> = {};
     sessions.forEach(s => {
-      const d = s.date.split('T')[0];
-      const [sy, sm] = d.split('-').map(Number);
+      // FIX: usa substring para pegar só "yyyy-MM-dd" sem UTC shift
+      const d = s.date.substring(0, 10);
+      const [sy, sm, sd] = d.split('-').map(Number);
       if (sy === year && sm - 1 === month) {
-        const day = parseInt(d.split('-')[2]);
-        map[day] = (map[day] || 0) + s.duration;
+        map[sd] = (map[sd] || 0) + s.duration;
       }
     });
     return map;
@@ -1568,7 +1608,8 @@ const Planning = () => {
     let count = 0;
     const d = new Date();
     while (true) {
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      // FIX: compara strings para evitar UTC shift
+      const key = format(d, 'yyyy-MM-dd');
       const found = sessions.some(s => s.date.startsWith(key));
       if (!found) break;
       count++;
@@ -1584,13 +1625,16 @@ const Planning = () => {
       const todayStr = format(now, 'yyyy-MM-dd');
       studied = sessions.filter(s => s.date.startsWith(todayStr)).reduce((a, s) => a + s.duration, 0) / 60;
     } else if (g.type === 'weekly') {
-      const weekAgo = subDays(now, 7);
-      studied = sessions.filter(s => new Date(s.date) >= weekAgo).reduce((a, s) => a + s.duration, 0) / 60;
-    } else {
+      const weekAgo = format(subDays(now, 7), 'yyyy-MM-dd');
+      const todayStr = format(now, 'yyyy-MM-dd');
+      // FIX: compara strings de data para evitar UTC shift
       studied = sessions.filter(s => {
-        const d = new Date(s.date);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        const d = s.date.substring(0, 10);
+        return d >= weekAgo && d <= todayStr;
       }).reduce((a, s) => a + s.duration, 0) / 60;
+    } else {
+      const nowStr = format(now, 'yyyy-MM');
+      studied = sessions.filter(s => s.date.substring(0, 7) === nowStr).reduce((a, s) => a + s.duration, 0) / 60;
     }
     const pct = g.target_hours > 0 ? Math.min(100, (studied / g.target_hours) * 100) : 0;
     return { ...g, studied: Math.round(studied * 10) / 10, pct: Math.round(pct) };
@@ -1646,9 +1690,9 @@ const Planning = () => {
           </div>
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
-              <button onClick={prevMonth} className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors text-sm font-bold">â€¹</button>
+              <button onClick={prevMonth} className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors text-sm font-bold">‹</button>
               <span className="font-black text-inherit" style={{color:'inherit'}}>{monthNames[month]} {year}</span>
-              <button onClick={nextMonth} className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors text-sm font-bold">â€º</button>
+              <button onClick={nextMonth} className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors text-sm font-bold">›</button>
             </div>
             <div className="grid grid-cols-7 gap-1 mb-2">
               {['DOM','SEG','TER','QUA','QUI','SEX','SÁB'].map(d => (
@@ -1791,6 +1835,7 @@ const Reports = () => {
     return 7;
   };
 
+  // FIX #4: inPeriod usa comparação de strings "yyyy-MM-dd" — sem UTC shift
   const inPeriod = useCallback((dateStr: string, period: string) => {
     const dateOnly = dateStr.substring(0, 10);
     const nowStr = format(new Date(), 'yyyy-MM-dd');
@@ -1846,8 +1891,9 @@ const Reports = () => {
     const isMonthGrouped = filters.period === 'all' || filters.period === 'year';
     return dateRange.map(date => {
       const label = isMonthGrouped
-        ? format(new Date(date + '-01'), 'MMM/yy', { locale: ptBR })
-        : format(new Date(date), filters.period === '7d' ? 'EEE' : 'dd/MM', { locale: ptBR });
+        // FIX: usa new Date(year, month-1, 1) para evitar UTC shift em meses
+        ? format(new Date(parseInt(date.substring(0,4)), parseInt(date.substring(5,7)) - 1, 1), 'MMM/yy', { locale: ptBR })
+        : format(parseLocalDate(date), filters.period === '7d' ? 'EEE' : 'dd/MM', { locale: ptBR });
       const daySessions = filteredSessions.filter(s => s.date.startsWith(date));
       const entry: any = { date: label };
       if (filters.subjectId === 'all') {
@@ -2154,7 +2200,7 @@ const SettingsPage = () => {
 
   const handleExportCSV = () => {
     const headers = ['Data','Disciplina','Duração (min)','Tipo','Notas'];
-    const rows = sessions.map(s => [s.date, s.subject_name || '', s.duration, s.type, s.notes || ''].map(v => `"${String(v).replace(/"/g, '""')}"`));
+    const rows = sessions.map(s => [s.date.substring(0,10), s.subject_name || '', s.duration, s.type, s.notes || ''].map(v => `"${String(v).replace(/"/g, '""')}"`));
     const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -2391,20 +2437,21 @@ const SessionHistory = () => {
   }, []);
 
   const filtered = useMemo(() => {
-    const now = new Date();
-    const cutoff = filters.period === '7d' ? subDays(now, 7)
-      : filters.period === '30d' ? subDays(now, 30)
-      : filters.period === '90d' ? subDays(now, 90)
-      : new Date('2000-01-01');
+    // FIX #5: compara strings "yyyy-MM-dd" para evitar UTC shift no filtro de período
+    const nowStr = format(new Date(), 'yyyy-MM-dd');
+    const cutoffStr = filters.period === '7d' ? format(subDays(new Date(), 7), 'yyyy-MM-dd')
+      : filters.period === '30d' ? format(subDays(new Date(), 30), 'yyyy-MM-dd')
+      : filters.period === '90d' ? format(subDays(new Date(), 90), 'yyyy-MM-dd')
+      : '2000-01-01';
 
     return sessions.filter(s => {
-      const date = new Date(s.date);
-      if (date < cutoff) return false;
+      const dateStr = s.date.substring(0, 10);
+      if (dateStr < cutoffStr || dateStr > nowStr) return false;
       if (filters.subjectId !== 'all' && s.subject_id !== parseInt(filters.subjectId)) return false;
       if (filters.type !== 'all' && s.type !== filters.type) return false;
       if (search && !s.subject_name?.toLowerCase().includes(search.toLowerCase()) && !(s.notes || '').toLowerCase().includes(search.toLowerCase())) return false;
       return true;
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }).sort((a, b) => b.date.localeCompare(a.date));
   }, [sessions, filters, search]);
 
   const totalHours = filtered.reduce((a, s) => a + s.duration / 60, 0);
@@ -2479,7 +2526,8 @@ const SessionHistory = () => {
             </div>
             <div className="text-right flex-shrink-0">
               <p className="font-black" style={{color: config.accentColor}}>{Math.floor(session.duration/60)}h {session.duration%60}m</p>
-              <p className="text-xs" style={{color: th.textMuted}}>{format(new Date(session.date), "dd/MM/yyyy", {locale: ptBR})}</p>
+              {/* FIX: usa formatSessionDate para evitar UTC shift */}
+              <p className="text-xs" style={{color: th.textMuted}}>{formatSessionDate(session.date, "dd/MM/yyyy", {locale: ptBR})}</p>
             </div>
           </motion.div>
         ))}
@@ -2822,7 +2870,3 @@ export default function App() {
     </AppContext.Provider>
   );
 }
-
-
-
-
