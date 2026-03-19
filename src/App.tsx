@@ -496,7 +496,7 @@ const Subjects = () => {
                     onChange={v => handleUpdate(subject.id, { difficulty: v })}
                   />
                 </div>
-                <button onClick={() => setEditingId(null)} className="w-full py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200">Fechar EdiÃ§Ã£o</button>
+                <button onClick={() => setEditingId(null)} className="w-full py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200">Fechar Edição</button>
               </div>
             ) : (
               <>
@@ -712,7 +712,7 @@ const Topics = () => {
                 <div className="space-y-4">
                   <input type="text" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm font-bold" value={topic.name} onChange={e => handleUpdate(topic.id, { name: e.target.value })} />
                   <textarea className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs h-20 resize-none" value={topic.description} onChange={e => handleUpdate(topic.id, { description: e.target.value })} />
-                  <button onClick={() => setEditingId(null)} className="w-full py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200">Fechar EdiÃ§Ã£o</button>
+                  <button onClick={() => setEditingId(null)} className="w-full py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200"></button>
                 </div>
               ) : (
                 <>
