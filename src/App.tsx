@@ -907,7 +907,7 @@ const StudyTimer = () => {
       type: sessionData.type,
       notes: sessionData.notes,
       duration: finalDuration,
-       sessionData.date || format(new Date(), 'yyyy-MM-dd')
+      date: sessionData.date || format(new Date(), 'yyyy-MM-dd')
     });
     const prefs = await api.preferences.get();
     const globalEnabled = prefs.reviews_global_enabled !== false;
