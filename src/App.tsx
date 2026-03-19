@@ -1107,7 +1107,7 @@ const StudyTimer = () => {
                       <label className="block text-sm font-bold text-slate-700">Modo de Registro</label>
                       <div className="flex gap-2">
                         <button type="button" onClick={() => setDraft({...draft, manualMode: 'duration'})} className={cn("flex-1 py-2 rounded-lg text-sm font-bold border-2 transition-all", draft.manualMode === 'duration' ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400")}>Duração</button>
-                        <button type="button" onClick={() => setDraft({...draft, manualMode: 'range'})} className={cn("flex-1 py-2 rounded-lg text-sm font-bold border-2 transition-all", draft.manualMode === 'range' ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400")}>HorÃ¡rio</button>
+                        <button type="button" onClick={() => setDraft({...draft, manualMode: 'range'})} className={cn("flex-1 py-2 rounded-lg text-sm font-bold border-2 transition-all", draft.manualMode === 'range' ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-100 text-slate-400")}>Horário</button>
                       </div>
                     </div>
                     {draft.manualMode === 'duration' ? (
