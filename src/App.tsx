@@ -839,7 +839,8 @@ const StudyTimer = () => {
   
   const [draft, setDraft, clearDraft] = useDraft('study_session', {
     subject_id: 0, topic_id: 0, type: 'theory' as Session['type'], notes: '',
-    duration: 0,  format(new Date(), 'yyyy-MM-dd'), startTime: '08:00', endTime: '09:00',
+    duration: 0,
+date: format(new Date(), 'yyyy-MM-dd'), startTime: '08:00', endTime: '09:00',
     manualMode: 'duration' as 'duration' | 'range'
   });
 
@@ -857,7 +858,7 @@ const StudyTimer = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('academiaflow_timer', JSON.stringify({ seconds, isActive, isPaused, lastUp Date.now(), draft }));
+    localStorage.setItem('academiaflow_timer', JSON.stringify({ seconds, isActive, isPaused, lastUpdate: Date.now(), draft }));
   }, [seconds, isActive, isPaused, draft]);
 
   useEffect(() => { api.subjects.list().then(setSubjects); }, []);
@@ -1101,7 +1102,8 @@ const StudyTimer = () => {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-bold mb-2 opacity-80">Data</label>
-                      <input type="date" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.date} onChange={e => setDraft({...draft,  e.target.value})} />
+                      <input type="date" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold" style={{background:'var(--surface,#fff)',borderColor:'var(--border,#e2e8f0)',color:'inherit'}} value={draft.date} onChange={e => setDraft({...draft, date: e.target.value})}
+ />
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-slate-700">Modo de Registro</label>
@@ -1387,7 +1389,7 @@ const ExercisesPage = () => {
       ...draft,
       topic_id: draft.topic_id || undefined,
       incorrect: draft.total - draft.correct,
-       new Date().toISOString()
+       date: new Date().toISOString()
     });
     setIsAdding(false);
     clearDraft();
