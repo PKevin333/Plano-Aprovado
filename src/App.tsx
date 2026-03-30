@@ -63,25 +63,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FIX #1 — Helpers de data para evitar bug de fuso horário (UTC shift)
-//
-// O problema: new Date("2024-01-15") interpreta a string como UTC meia-noite.
-// No Brasil (UTC-3) isso vira 2024-01-14 às 21h — um dia antes!
-// Solução: usar o construtor new Date(ano, mes-1, dia) que é sempre local.
+// Helpers de data para evitar bug de fuso horário (UTC shift)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Parseia "yyyy-MM-dd" (ou ISO "yyyy-MM-ddT...") sem deslocamento de fuso. */
 function parseLocalDate(dateStr: string): Date {
-  const s = (dateStr || '').substring(0, 10); // garante só "yyyy-MM-dd"
+  const s = (dateStr || '').substring(0, 10);
   const [y, m, d] = s.split('-').map(Number);
-  if (!y || !m || !d) return new Date(); // fallback seguro
+  if (!y || !m || !d) return new Date();
   return new Date(y, m - 1, d);
 }
 
-/**
- * Formata datas vindas do banco (podem ser "yyyy-MM-dd" ou ISO completo)
- * usando parseLocalDate para evitar o bug de fuso.
- */
 function formatSessionDate(dateStr: string, fmt: string, opts?: object): string {
   return format(parseLocalDate(dateStr), fmt, opts);
 }
@@ -286,7 +277,6 @@ const Dashboard = () => {
   const studiedDaysThisMonth = new Set(
     sessions
       .filter(s => {
-        // FIX: usa parseLocalDate para evitar UTC shift
         const d = parseLocalDate(s.date);
         return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
       })
@@ -376,7 +366,6 @@ const Dashboard = () => {
   );
 };
 
-// FIX: DifficultyStars — componente dedicado para exibir/editar dificuldade
 const DifficultyStars = ({ value, onChange, readonly = false }: { value: number; onChange?: (v: number) => void; readonly?: boolean }) => {
   const safeValue = Math.max(1, Math.min(5, Math.round(Number(value) || 1)));
   return (
@@ -858,7 +847,6 @@ const StudyTimer = () => {
   const [draft, setDraft, clearDraft] = useDraft('study_session', {
     subject_id: 0, topic_id: 0, type: 'theory' as Session['type'], notes: '',
     duration: 0,
-    // FIX: usa format() local para garantir data correta sem UTC shift
     date: format(new Date(), 'yyyy-MM-dd'),
     startTime: '08:00', endTime: '09:00',
     manualMode: 'duration' as 'duration' | 'range'
@@ -923,7 +911,6 @@ const StudyTimer = () => {
     }
     if (finalDuration <= 0) return alert('A duração deve ser maior que zero');
 
-    // FIX: garante que a data salva é sempre "yyyy-MM-dd" local (sem UTC shift)
     const sessionDate = sessionData.date
       ? sessionData.date.substring(0, 10)
       : format(new Date(), 'yyyy-MM-dd');
@@ -948,8 +935,6 @@ const StudyTimer = () => {
         { type: '7d' as Review['type'], days: 7 },
         { type: '30d' as Review['type'], days: 30 }
       ]) {
-        // FIX #2 — "scheduled_date" estava com nome truncado "scheduled_" no original,
-        // causando erro de sintaxe que quebrava o build inteiro.
         const scheduledDate = new Date(now);
         scheduledDate.setDate(now.getDate() + r.days);
         await api.reviews.create({
@@ -1134,7 +1119,6 @@ const StudyTimer = () => {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-bold mb-2 opacity-80">Data</label>
-                      {/* FIX: input type="date" retorna "yyyy-MM-dd" direto — correto */}
                       <input
                         type="date"
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold"
@@ -1366,7 +1350,6 @@ const Reviews = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-bold text-inherit truncate" style={{color:'inherit'}}>{review.subject_name}</h4>
-                  {/* FIX: usa formatSessionDate para evitar UTC shift na exibição */}
                   <p className="text-xs opacity-60">Programada para {formatSessionDate(review.scheduled_date, "dd/MM/yyyy")}</p>
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
@@ -1391,7 +1374,6 @@ const Reviews = () => {
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0" style={{ backgroundColor: review.subject_color }}>{review.type}</div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-inherit truncate" style={{color:'inherit'}}>{review.subject_name}</h4>
-                    {/* FIX: usa formatSessionDate */}
                     <p className="text-xs opacity-60">Concluída em {formatSessionDate(review.scheduled_date, "dd/MM/yyyy")}</p>
                   </div>
                   <CheckCircle2 size={18} className="text-emerald-500 flex-shrink-0" />
@@ -1406,14 +1388,22 @@ const Reviews = () => {
   );
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// EXERCÍCIOS — com botão de APAGAR por linha
+// ─────────────────────────────────────────────────────────────────────────────
 const ExercisesPage = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [isAdding, setIsAdding] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{ id: number } | null>(null);
   const [draft, setDraft, clearDraft] = useDraft('new_exercise', { subject_id: 0, topic_id: 0, total: 0, correct: 0, notes: '' });
 
-  useEffect(() => { api.subjects.list().then(setSubjects); api.exercises.list().then(setExercises); }, []);
+  useEffect(() => {
+    api.subjects.list().then(setSubjects);
+    api.exercises.list().then(setExercises);
+  }, []);
+
   useEffect(() => {
     if (draft.subject_id) api.topics.list(draft.subject_id).then(setTopics);
     else setTopics([]);
@@ -1427,11 +1417,18 @@ const ExercisesPage = () => {
       ...draft,
       topic_id: draft.topic_id || undefined,
       incorrect: draft.total - draft.correct,
-      // FIX #3: salva só a data local "yyyy-MM-dd", não ISO com horário
       date: format(new Date(), 'yyyy-MM-dd')
     });
     setIsAdding(false);
     clearDraft();
+    api.exercises.list().then(setExercises);
+  };
+
+  // ── NOVO: apagar registro de exercício ──
+  const handleDelete = async () => {
+    if (!deleteModal) return;
+    await api.exercises.delete(deleteModal.id);
+    setDeleteModal(null);
     api.exercises.list().then(setExercises);
   };
 
@@ -1446,6 +1443,7 @@ const ExercisesPage = () => {
           <Plus size={20} />Registrar Desempenho
         </button>
       </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4 sm:gap-6 lg:gap-8">
         <Card className="xl:col-span-2" title="Histórico de Questões">
           <div className="overflow-x-auto">
@@ -1458,12 +1456,12 @@ const ExercisesPage = () => {
                   <th className="pb-4 px-4">Total</th>
                   <th className="pb-4 px-4">Acertos</th>
                   <th className="pb-4 px-4">Aproveitamento</th>
+                  <th className="pb-4 px-2"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {exercises.map(ex => (
-                  <tr key={ex.id} className="text-sm hover:bg-slate-50 transition-colors" style={{color:'inherit'}}>
-                    {/* FIX: usa formatSessionDate para evitar UTC shift */}
+                  <tr key={ex.id} className="text-sm hover:bg-slate-50 transition-colors group" style={{color:'inherit'}}>
                     <td className="py-4 px-4">{formatSessionDate(ex.date, "dd/MM/yy")}</td>
                     <td className="py-4 px-4 font-bold">{ex.subject_name}</td>
                     <td className="py-4 px-4">{ex.topic_name || '-'}</td>
@@ -1477,11 +1475,21 @@ const ExercisesPage = () => {
                         <span className="font-bold">{Math.round(ex.percent_correct)}%</span>
                       </div>
                     </td>
+                    {/* ── BOTÃO APAGAR ── */}
+                    <td className="py-4 px-2">
+                      <button
+                        onClick={() => setDeleteModal({ id: ex.id })}
+                        className="p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
+                        title="Apagar registro"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {exercises.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                    <td colSpan={7} className="py-12 text-center text-slate-400">
                       <Target size={40} className="mx-auto mb-2 opacity-30" />
                       <p>Nenhum exercício registrado ainda.</p>
                     </td>
@@ -1491,6 +1499,7 @@ const ExercisesPage = () => {
             </table>
           </div>
         </Card>
+
         <div className="space-y-6">
           <Card title="Métricas Gerais">
             <div className="space-y-6">
@@ -1512,6 +1521,50 @@ const ExercisesPage = () => {
           </Card>
         </div>
       </div>
+
+      {/* ── MODAL CONFIRMAR EXCLUSÃO ── */}
+      <AnimatePresence>
+        {deleteModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl"
+              style={{ background: 'var(--surface,#fff)', color: 'inherit' }}
+            >
+              <div className="p-8 space-y-5">
+                <div className="w-14 h-14 rounded-2xl bg-rose-100 flex items-center justify-center mx-auto">
+                  <Trash2 size={28} className="text-rose-500" />
+                </div>
+                <div className="text-center space-y-2">
+                  <h2 className="text-xl font-black" style={{ color: 'inherit' }}>Apagar registro?</h2>
+                  <p className="text-sm" style={{ color: 'var(--text-muted,#64748b)' }}>
+                    Este registro de exercícios será apagado permanentemente. Essa ação não pode ser desfeita.
+                  </p>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setDeleteModal(null)}
+                    className="flex-1 py-3 rounded-xl font-bold transition-all"
+                    style={{ background: 'var(--border2,#f1f5f9)', color: 'var(--text-muted,#64748b)' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="flex-1 py-3 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 transition-all"
+                  >
+                    Apagar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── MODAL ADICIONAR ── */}
       <AnimatePresence>
         {isAdding && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1591,7 +1644,6 @@ const Planning = () => {
   const studyByDay = useMemo(() => {
     const map: Record<string, number> = {};
     sessions.forEach(s => {
-      // FIX: usa substring para pegar só "yyyy-MM-dd" sem UTC shift
       const d = s.date.substring(0, 10);
       const [sy, sm, sd] = d.split('-').map(Number);
       if (sy === year && sm - 1 === month) {
@@ -1608,7 +1660,6 @@ const Planning = () => {
     let count = 0;
     const d = new Date();
     while (true) {
-      // FIX: compara strings para evitar UTC shift
       const key = format(d, 'yyyy-MM-dd');
       const found = sessions.some(s => s.date.startsWith(key));
       if (!found) break;
@@ -1627,7 +1678,6 @@ const Planning = () => {
     } else if (g.type === 'weekly') {
       const weekAgo = format(subDays(now, 7), 'yyyy-MM-dd');
       const todayStr = format(now, 'yyyy-MM-dd');
-      // FIX: compara strings de data para evitar UTC shift
       studied = sessions.filter(s => {
         const d = s.date.substring(0, 10);
         return d >= weekAgo && d <= todayStr;
@@ -1835,7 +1885,6 @@ const Reports = () => {
     return 7;
   };
 
-  // FIX #4: inPeriod usa comparação de strings "yyyy-MM-dd" — sem UTC shift
   const inPeriod = useCallback((dateStr: string, period: string) => {
     const dateOnly = dateStr.substring(0, 10);
     const nowStr = format(new Date(), 'yyyy-MM-dd');
@@ -1891,7 +1940,6 @@ const Reports = () => {
     const isMonthGrouped = filters.period === 'all' || filters.period === 'year';
     return dateRange.map(date => {
       const label = isMonthGrouped
-        // FIX: usa new Date(year, month-1, 1) para evitar UTC shift em meses
         ? format(new Date(parseInt(date.substring(0,4)), parseInt(date.substring(5,7)) - 1, 1), 'MMM/yy', { locale: ptBR })
         : format(parseLocalDate(date), filters.period === '7d' ? 'EEE' : 'dd/MM', { locale: ptBR });
       const daySessions = filteredSessions.filter(s => s.date.startsWith(date));
@@ -2437,7 +2485,6 @@ const SessionHistory = () => {
   }, []);
 
   const filtered = useMemo(() => {
-    // FIX #5: compara strings "yyyy-MM-dd" para evitar UTC shift no filtro de período
     const nowStr = format(new Date(), 'yyyy-MM-dd');
     const cutoffStr = filters.period === '7d' ? format(subDays(new Date(), 7), 'yyyy-MM-dd')
       : filters.period === '30d' ? format(subDays(new Date(), 30), 'yyyy-MM-dd')
@@ -2526,7 +2573,6 @@ const SessionHistory = () => {
             </div>
             <div className="text-right flex-shrink-0">
               <p className="font-black" style={{color: config.accentColor}}>{Math.floor(session.duration/60)}h {session.duration%60}m</p>
-              {/* FIX: usa formatSessionDate para evitar UTC shift */}
               <p className="text-xs" style={{color: th.textMuted}}>{formatSessionDate(session.date, "dd/MM/yyyy", {locale: ptBR})}</p>
             </div>
           </motion.div>
