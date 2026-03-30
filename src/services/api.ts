@@ -52,6 +52,11 @@ export const api = {
     list: () => apiFetch(`${API_BASE}/exercises`).then(r => r.json() as Promise<Exercise[]>),
     create: (data: Omit<Exercise, 'id' | 'percent_correct'>) => apiFetch(`${API_BASE}/exercises`, { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()),
     update: (id: number, data: Partial<Exercise>) => apiFetch(`${API_BASE}/exercises/${id}`, { method: 'PATCH', body: JSON.stringify(data) }).then(r => r.json()),
+    // ── NOVO: deletar registro de exercício ──
+    delete: (id: number) => apiFetch(`${API_BASE}/exercises/${id}`, { method: 'DELETE' }).then(r => {
+      if (!r.ok) return r.json().then(err => Promise.reject(err));
+      return r.json();
+    }),
   },
   reviews: {
     list: () => apiFetch(`${API_BASE}/reviews`).then(r => r.json() as Promise<Review[]>),
@@ -77,5 +82,5 @@ export const api = {
   },
   stats: {
     summary: () => apiFetch(`${API_BASE}/stats/summary`).then(r => r.json() as Promise<DashboardStats>),
-  }
+  },
 };
