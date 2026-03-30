@@ -455,6 +455,17 @@ async function startServer() {
     }
   });
 
+  // ── NOVO: deletar registro de exercício ──
+  app.delete('/api/exercises/:id', (req, res) => {
+    try {
+      const uid = getUserId(req);
+      db.prepare('DELETE FROM exercises WHERE id=? AND user_id=?').run(req.params.id, uid);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get('/api/reviews', (req, res) => {
     try {
       const uid = getUserId(req);
